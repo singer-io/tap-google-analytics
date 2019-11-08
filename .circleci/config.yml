@@ -1,1 +1,8 @@
 version: 2
+jobs:
+  build:
+    steps:
+      - run:
+          name: 'No-op'
+          command: |
+            echo "No tests yet!"
