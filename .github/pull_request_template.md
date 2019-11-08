@@ -1,8 +1,9 @@
 # Description of change
-(write a short description or paste a link to JIRA)
+(write a short description here or paste a link to JIRA)
 
-# Manual QA steps
- - 
+# QA steps
+ - [ ] automated tests passing
+ - [ ] manual qa steps passing (list below)
  
 # Risks
  - 
