@@ -11,7 +11,7 @@ setup(
     py_modules=["tap_google_analytics"],
     install_requires=[
         "singer-python==5.9.0",
-        "requests==2.20.0"
+        "requests==2.22.0"
     ],
     extras_require={
         'dev': [
