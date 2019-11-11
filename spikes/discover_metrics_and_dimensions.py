@@ -32,6 +32,7 @@
 
 import requests
 import os
+import re
 
 # For your viewing pleasure
 from pprint import pprint
@@ -80,7 +81,7 @@ example_field = {'attributes': {'addedInApiVersion': '3',
                                 'Visitor, indicating if the users are new or '
                                 'returning.',
                                 'group': 'User',
-                                'status': 'PUBLIC',
+                                'status': 'PUBLIC', # This can also be 'DEPRECATED', should be removed from discovery if so
                                 'type': 'DIMENSION',
                                 'uiName': 'User Type'},
                  'id': 'ga:userType',
@@ -93,14 +94,21 @@ example_field = {'attributes': {'addedInApiVersion': '3',
 def transform_field(field):
     interesting_attributes = {k: v for k, v in field["attributes"].items()
                               if k in {"dataType", "group", "status", "type", "uiName"}}
+    # TODO: It seems like some dimensions can be typed as an integer or float, so we might want to do that when generating schemas.
+    # - They may come through here as "string". This should be validated when building discovery
     return {"id": field["id"], **interesting_attributes}
 
-# Map ID to field interesting info
-field_infos = {f["id"]: transform_field(f) for f in metadata_json["items"]}
+def get_field_infos():
+    metadata_response = requests.get("https://www.googleapis.com/analytics/v3/metadata/{reportType}/columns".format(reportType="ga"),
+                                     params={"quotaUser": quota_user})
+    # TODO: Error handling
+    return [transform_field(f) for f in metadata_response.json()["items"]]
 
-# >>> len([v for _, v in field_infos.items() if v["type"] == "DIMENSION"])
+field_infos = get_field_infos()
+
+# >>> len([v for v in field_infos if v["type"] == "DIMENSION"])
 # 273
-# >>> len([v for _, v in field_infos.items() if v["type"] == "METRIC"])
+# >>> len([v for v in field_infos if v["type"] == "METRIC"])
 # 262
 # >>> len(field_infos)
 # 535
@@ -159,7 +167,7 @@ cubes = cubes_response.json()
 
 # Processing this file for exclusion rules
 
-# exclusions' shape
+# cubes' shape
 # key = 'per_active_visitors_day_active_visitors_30'
 # value = {'ga:30dayUsers': 1,
 #          'ga:CTR': 1,
@@ -173,13 +181,19 @@ cubes = cubes_response.json()
 #          ... }
 
 # Get all fields
-# >>> set_of_fields = set([e for value in exclusions.values() for e in value.keys()])
+# >>> set_of_fields = set([e for value in cubes.values() for e in value.keys()])
 
 # Get all fields that occur with `ga:transactionId`
-# >>> set_of_fields_with_transaction_id = set([e for values in exclusions.values() for e in values.keys() if "ga:transactionId" in values.keys()]) 
+# >>> set_of_fields_with_transaction_id = set([e for values in cubes.values() for e in values.keys() if "ga:transactionId" in values.keys()])
 
 # This should be the set of fields that can't be selected with `ga:transactionId`
 # >>> set_of_fields - set_of_fields_with_transaction_id
+
+# NOTE: Every value in this file currently is `1`, but it might be a
+# future proofing feature that it's structured like `{"ga:name": 1}` in
+# order to mark fields as incompatible after the fact.
+# >>> set([e for value in cubes.values() for e in value.values()])
+# {1}
 
 def get_all_fields_available(cubes):
     """
@@ -209,7 +223,7 @@ def generate_exclusions_lookup():
     cubes = requests.get("https://ga-dev-tools.appspot.com/ga_cubes.json").json()
     all_fields = get_all_fields_available(cubes)
     return {f: get_field_exclusions_for(f, cubes, all_fields) for f in all_fields}
-    
+
 
 #######################################################################
 # Validation                                                          #
@@ -252,17 +266,48 @@ no_numeric_end_in_cube = {'ga:experimentOutcomes', 'ga:adwordsCustomerName', 'ga
 
 # We think that those that are in the `ga_cubes` dataset are standard
 # fields that just always have a number. We should provide these for field
-# selection and generate exclusions based on their "\d+$" name
+# selection based on their "\d+$" name and generate exclusions based on
+# their "XX$" name
 
 # CUSTOM VARIABLE OR COLUMNS
 # These are the fields that would need to be designed, returned from Metadata API under the group "Custom Variables or Columns"
 custom_ELLIPSIS_variables_QMARK = ['ga:customVarValueXX', 'ga:calcMetric_<NAME>', 'ga:metricXX', 'ga:customVarNameXX', 'ga:dimensionXX']
 
-# TODO: To Design - This is not possible with a discovery-based pattern,
-# unless we have a dynamic report building interface and load the custom
-# fields from a definition (either in metadata for the report's table, or
-# in the config). Anything with an `XX` in it appears to be a custom
-# metric/dimension that will have an actual numeric value depending on the
-# one the user is referring to.
-    
+# TODO: To Design - Dynamic discovery of these custom fields. Anything
+# with an `XX` in it appears to be a custom metric/dimension that will
+# have an actual numeric value depending on the one the user is referring
+# to.
+# - Research on discovering them through the API in `spikes/listing_cutsom_metrics_and_dimensions.py`
+
+
+# ============
+
+# POTENTIAL FEATURE: It looks like the ga_cubes.json file is organized
+# into groups of metrics/dimensions that work with each other. These might
+# be useful to get as a set of default reports? Could be a good QoL
+# improvement for people just wanting to get quick insights.
+
+# Example:
+  # "per_cost_data_import": {
+  #   "ga:adGroup": 1,
+  #   "ga:referralPath": 1,
+  #   "ga:adwordsCampaignID": 1,
+  #   "ga:CPC": 1,
+  #   "ga:adDisplayUrl": 1,
+  #   "ga:adwordsCriteriaID": 1,
+  #   "ga:impressions": 1,
+  #   "ga:adSlotPosition": 1,
+  #   "ga:adContent": 1,
+  #   "ga:source": 1,
+  #   "ga:campaign": 1,
+  #   "ga:adSlot": 1,
+  #   "ga:CTR": 1,
+  #   "ga:CPM": 1,
+  #   "ga:medium": 1,
+  #   "ga:adDestinationUrl": 1,
+  #   "ga:keyword": 1,
+  #   "ga:adCost": 1,
+  #   "ga:adClicks": 1
+  # }
+
 #```
