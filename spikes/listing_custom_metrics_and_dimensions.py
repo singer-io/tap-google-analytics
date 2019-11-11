@@ -233,6 +233,18 @@ def get_profiles_for_property(access_token, account_id, web_property_id):
                                               params={"quotaUser": quota_user})
     return [p["id"] for p in profiles_response.json()['items']]
 
+def get_goals_for_profile(access_token, account_id, web_property_id, profile_id):
+    """
+    Gets all profiles for property to associate with custom metrics and dimensions.
+    """
+    profiles_url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals'
+    goals_response = requests.get(profiles_url.format(accountId=account_id,
+                                                         webPropertyId=web_property_id,
+                                                         profileId=profile_id),
+                                              headers={'Authorization' : 'Bearer ' + access_token},
+                                              params={"quotaUser": quota_user})
+    return [g["id"] for g in goals_response.json()['items']]
+
 def get_custom_metrics(access_token, account_id, web_property_id):
     """
     Gets all metrics for the specified web_property_id.

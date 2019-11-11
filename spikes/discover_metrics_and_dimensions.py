@@ -230,7 +230,7 @@ def generate_exclusions_lookup():
 # Checking that the fields that exist in the `ga_cubes` set match the #
 # fields that exist in the `Metadata API`                             #
 #######################################################################
-symm_diff = set(field_infos.keys()).symmetric_difference(all_fields)
+symm_diff = {fi["id"] for fi in field_infos}.symmetric_difference(all_fields)
 
 # Spoiler Alert: It does not match, on either side. Reasons:
 
