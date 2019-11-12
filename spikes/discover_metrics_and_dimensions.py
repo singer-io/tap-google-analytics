@@ -220,6 +220,7 @@ def generate_exclusions_lookup():
     # TODO: When applying this map, you need to expand non-custom grouped
     # GA metadata fields into their numeric counterparts from the
     # `ga_cubes` data set
+    # - Some `XX` fields (goals and custom dims/mets) are in their `XX` form in this file
     cubes = requests.get("https://ga-dev-tools.appspot.com/ga_cubes.json").json()
     all_fields = get_all_fields_available(cubes)
     return {f: get_field_exclusions_for(f, cubes, all_fields) for f in all_fields}

@@ -12,6 +12,8 @@
 import re
 import listing_custom_metrics_and_dimensions as listing
 import discover_metrics_and_dimensions as discover
+from singer import metadata
+from singer.catalog import Catalog
 
 standard_fields = discover.field_infos
 custom_fields = listing.custom_metrics_and_dimensions
@@ -356,8 +358,6 @@ datetime_field_overrides = {'ga:date',
 float_field_overrides = {'ga:latitude',
                            'ga:longitude'}
 
-import ipdb; ipdb.set_trace()
-1+1
 
 def revised_type_to_schema(ga_type, field_id):
     if field_id in datetime_field_overrides:
@@ -370,7 +370,7 @@ def revised_type_to_schema(ga_type, field_id):
         return {"type": ["number", "null"]}
     elif ga_type == 'TIME':
         return {"type": ["string", "null"]}
-    elif ga_type == 'INTEGER' or field_id in integer_field_overrides::
+    elif ga_type == 'INTEGER' or field_id in integer_field_overrides:
         return {"type": ["integer", "null"]}
     elif ga_type == 'FLOAT' or field_id in float_field_overrides:
         return {"type": ["number", "null"]}
@@ -398,7 +398,7 @@ numeric_xx_fields = [{**field_info, **{"id": numeric_field_id}}
                      for regex, field_info in xx_field_regexes.items()
                      for numeric_field_id in field_exclusions.keys() if re.match(regex, numeric_field_id)]
 
-# TODO: Some did not get captured by this search, why?
+# Some did not get captured by this search
 # - Mainly entries with `XX` in the middle of the id
 # ipdb> pp [f['id'] for f in standard_fields if 'XX' in f['id']]
 ['ga:goalXXStarts',
@@ -447,7 +447,131 @@ def get_goals_for_profile(access_token, account_id, web_property_id, profile_id)
     return [g["id"] for g in goals_response.json()['items']]
 
 # Generate Metadata - Use the "standard_fields" and "custom_fields" to do this
+# 1. Standard, non XX fields
+# 2. Standard, Goal XX fields -- still XX in exclusions map
+# 3. Standard, Non-Goal XX fields -- In numeric form in exclusions map
+# 4. Custom Fields (ga:metricXX and ga:dimensionXX for now)
 
+# Algo:
+# generate ALL the schemas
+#    - generate metadata for each schema and case above
+# Profit!
+
+def is_static_XX_field(field_id, field_exclusions):
+    """
+    GA has fields that are documented using a placeholder of `XX`, where
+    the `XX` is replaced with a number in practice.
+
+    Some of these are standard fields with constant numeric
+    representations. These must be handled differently from other field,
+    so this function will detect this case using the information we have
+    gleaned in our field_exclusions values.
+
+    If the field_exclusions map does NOT have the `XX` version in it, this
+    function assumes that it has only the numeric versions.
+    """
+    return 'XX' in field_id and field_id not in field_exclusions
+
+def is_dynamic_XX_field(field_id, field_exclusions):
+    """
+    GA has fields that are documented using a placeholder of `XX`, where
+    the `XX` is replaced with a number in practice.
+
+    Some of these are standard fields that are generated based on other
+    artifacts defined for the profile (e.g., goals). These must be handled
+    differently from other fields as well, since the IDs must be
+    discovered through their own means.
+
+    If the field_exclusions map DOES have the `XX` version in it, this
+    function assumes that the field is dynamically discovered.
+    """
+    return 'XX' in field_id and field_id in field_exclusions
+
+def handle_static_XX_field(field, field_exclusions):
+    """
+    Uses a regex of the `XX` field's ID to discover which numeric versions
+    of a given `XX` field name we have exclusions for.
+
+    Generates a schema entry and metadata for each.
+    Returns:
+    - Sub Schemas  {"<numeric_field_id>": {...field schema}, ...}
+    - Sub Metadata {"numeric_field_id>": {...exclusions metadata value}, ...}
+    """
+    regex_matcher = field['id'].replace("XX", r'\d\d?')
+    matching_exclusions = {field_id: field_exclusions[field_id]
+                           for field_id in field_exclusions.keys()
+                           if re.match(regex_matcher, field_id)}
+
+    sub_schemas = {field_id: revised_type_to_schema(field["dataType"], field["id"])
+                     for field_id in matching_exclusions.keys()}
+    sub_metadata = matching_exclusions
+
+    return sub_schemas, sub_metadata
+
+def get_dynamic_field_names(client, field):
+    # TODO: This is mocked, do the real thing as we discover cases, please
+    # TODO: This should throw if the field name is not known, to determine all known fields over time
+    return [field['id'].replace('XX',str(i)) for i in range(1,5)]
+
+def handle_dynamic_XX_field(client, field, field_exclusions):
+    """
+    Discovers dynamic names of a given XX field using `client` with
+    `get_dynamic_field_names` and matches them with the exclusions known
+    for the `XX` version of the name.
+
+    Generates a schema entry and metadata for each.
+    Returns:
+    - Sub Schemas  {"<numeric_field_id>": {...field schema}, ...}
+    - Sub Metadata {"numeric_field_id>": {...exclusions metadata value}, ...}
+    """
+    dynamic_field_names = get_dynamic_field_names(client, field)
+
+    sub_schemas = {d: revised_type_to_schema(field["dataType"],field["id"])
+                   for d in dynamic_field_names}
+
+    sub_metadata = {r: field_exclusions[field['id']]
+                    for r in dynamic_field_names}
+    return sub_schemas, sub_metadata
+
+def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions):
+    schema = {"type": "object", "properties": {}}
+    mdata = metadata.new()
+    for standard_field in standard_fields:
+        if standard_field['status'] == 'DEPRECATED':
+            continue
+        matching_fields = []
+        if is_static_XX_field(standard_field["id"], field_exclusions):
+            sub_schemas, sub_mdata = handle_static_XX_field(standard_field, field_exclusions)
+            schema["properties"].update(sub_schemas)
+            for name, exclusions in sub_mdata.items():
+                mdata = metadata.write(mdata, ("properties", name), "fieldExclusions", exclusions)
+        elif is_dynamic_XX_field(standard_field["id"], field_exclusions):
+            sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, field_exclusions)
+            schema["properties"].update(sub_schemas)
+            for name, exclusions in sub_mdata.items():
+                mdata = metadata.write(mdata, ("properties", name), "fieldExclusions", exclusions)
+        else:
+            schema["properties"][standard_field["id"]] = revised_type_to_schema(standard_field["dataType"],
+                                                                                 standard_field["id"])
+            # TODO: Should the field names be in a lookup? So they're rendered as their friendly name (like Adwords does)
+            # TODO: What other pieces of metadata do we need? probably tap_google_analytics.ga_name, tap_google_analytics.profile_id, etc?
+            # - Also, metric/dimension needs to be in metadata for the UI (refer to adwords for key)
+            mdata = metadata.write(mdata, ("properties", standard_field["id"]), "fieldExclusions", field_exclusions[standard_field["id"]])
+
+    for custom_field in custom_fields:
+        # TODO: This will need to expand XX fields into multiple field schemas, somehow
+        schema["properties"][custom_field["id"]] = revised_type_to_schema(custom_field["type"],
+                                                                             custom_field["id"])
+        # TODO: Should the field names be in a lookup? So they're rendered as their friendly name (like Adwords does)
+        # TODO: What other pieces of metadata do we need? probably tap_google_analytics.ga_name, tap_google_analytics.profile_id, etc?
+        # - Also, metric/dimension needs to be in metadata for the UI (refer to adwords for key)
+        mdata = metadata.write(mdata, ("properties", custom_field["id"]), "fieldExclusions", field_exclusions[custom_field["id"]])
+    import ipdb; ipdb.set_trace()
+    1+1
+
+# TODO: Not using a client, but will need one for dynamic standard fields
+client = {}
+generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions)
 
 # Rough draft of catalog code
 
