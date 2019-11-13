@@ -13,7 +13,7 @@ import re
 import listing_custom_metrics_and_dimensions as listing
 import discover_metrics_and_dimensions as discover
 from singer import metadata
-from singer.catalog import Catalog
+from singer.catalog import Catalog, CatalogEntry, Schema
 
 standard_fields = discover.field_infos
 custom_fields = listing.custom_metrics_and_dimensions
@@ -50,7 +50,7 @@ def type_to_schema(ga_type):
 # TODO: Do we need to generate the `XX` fields schemas here somehow? e.g., 'ga:productCategoryLevel5' vs. 'ga:productCategoryLevelXX'
 # - The numeric versions are in `ga_cubes.json`
 field_schemas = {**{f["id"]: type_to_schema(f["dataType"]) for f in standard_fields},
-                 **{f["id"]: type_to_schema(f["type"]) for f in custom_fields}}
+                 **{f["id"]: type_to_schema(f["dataType"]) for f in custom_fields}}
 
 # These are data types that we traditionally have used, compare them with those discovered
 known_dimension_types = {"ga:start-date": "DATETIME",
@@ -384,7 +384,7 @@ def revised_type_to_schema(ga_type, field_id):
 # TODO: Do we need to generate the `XX` fields schemas here somehow? e.g., 'ga:productCategoryLevel5' vs. 'ga:productCategoryLevelXX'
 # - The numeric versions are in `ga_cubes.json`
 revised_field_schemas = {**{f["id"]: type_to_schema(f["dataType"]) for f in standard_fields},
-                         **{f["id"]: type_to_schema(f["type"]) for f in custom_fields}}
+                         **{f["id"]: type_to_schema(f["dataType"]) for f in custom_fields}}
 
 # Expand Out standard XX fields into their numeric counterparts
 # This will give us all of the fields that exist, including the actual names of standard `XX` fields
@@ -533,9 +533,22 @@ def handle_dynamic_XX_field(client, field, field_exclusions):
                     for r in dynamic_field_names}
     return sub_schemas, sub_metadata
 
+def write_metadata(mdata, field, exclusions):
+    """ Translate a field_info object and its exclusions into its metadata, and write it. """
+    mdata = metadata.write(mdata, ("properties", field["id"]), "inclusion", "available")
+    mdata = metadata.write(mdata, ("properties", field["id"]), "fieldExclusions", list(exclusions))
+    mdata = metadata.write(mdata, ("properties", field["id"]), "behavior", field["type"])
+
+    # TODO: What other pieces of metadata do we need? probably tap_google_analytics.ga_name, tap_google_analytics.profile_id, etc?
+    # - Also, metric/dimension needs to be in metadata for the UI (refer to adwords for key) 'behavior'
+
+    return mdata
+
 def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions):
-    schema = {"type": "object", "properties": {}}
-    mdata = metadata.new()
+    schema = {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"}}}
+    mdata = metadata.get_standard_metadata(schema=schema, key_properties=["_sdc_record_hash"])
+    mdata = metadata.to_map(mdata)
+
     for standard_field in standard_fields:
         if standard_field['status'] == 'DEPRECATED':
             continue
@@ -543,35 +556,55 @@ def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusi
         if is_static_XX_field(standard_field["id"], field_exclusions):
             sub_schemas, sub_mdata = handle_static_XX_field(standard_field, field_exclusions)
             schema["properties"].update(sub_schemas)
-            for name, exclusions in sub_mdata.items():
-                mdata = metadata.write(mdata, ("properties", name), "fieldExclusions", exclusions)
+            for calculated_id, exclusions in sub_mdata.items():
+                specific_field = {**standard_field, **{"id": calculated_id}}
+                mdata = write_metadata(mdata, specific_field, exclusions)
         elif is_dynamic_XX_field(standard_field["id"], field_exclusions):
             sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, field_exclusions)
             schema["properties"].update(sub_schemas)
-            for name, exclusions in sub_mdata.items():
-                mdata = metadata.write(mdata, ("properties", name), "fieldExclusions", exclusions)
+            for calculated_id, exclusions in sub_mdata.items():
+                specific_field = {**standard_field, **{"id": calculated_id}}
+                mdata = write_metadata(mdata, specific_field, exclusions)
         else:
             schema["properties"][standard_field["id"]] = revised_type_to_schema(standard_field["dataType"],
                                                                                  standard_field["id"])
-            # TODO: Should the field names be in a lookup? So they're rendered as their friendly name (like Adwords does)
-            # TODO: What other pieces of metadata do we need? probably tap_google_analytics.ga_name, tap_google_analytics.profile_id, etc?
-            # - Also, metric/dimension needs to be in metadata for the UI (refer to adwords for key)
-            mdata = metadata.write(mdata, ("properties", standard_field["id"]), "fieldExclusions", field_exclusions[standard_field["id"]])
+            mdata = write_metadata(mdata, standard_field, field_exclusions[standard_field["id"]])
 
     for custom_field in custom_fields:
-        # TODO: This will need to expand XX fields into multiple field schemas, somehow
-        schema["properties"][custom_field["id"]] = revised_type_to_schema(custom_field["type"],
-                                                                             custom_field["id"])
-        # TODO: Should the field names be in a lookup? So they're rendered as their friendly name (like Adwords does)
-        # TODO: What other pieces of metadata do we need? probably tap_google_analytics.ga_name, tap_google_analytics.profile_id, etc?
-        # - Also, metric/dimension needs to be in metadata for the UI (refer to adwords for key)
-        mdata = metadata.write(mdata, ("properties", custom_field["id"]), "fieldExclusions", field_exclusions[custom_field["id"]])
-    import ipdb; ipdb.set_trace()
-    1+1
+        if custom_field["kind"] == 'analytics#customDimension':
+            exclusion_lookup_name = 'ga:dimensionXX'
+        elif custom_field["kind"] == 'analytics#customMetric':
+            exclusion_lookup_name = 'ga:metricXX'
+        else:
+            raise Exception('Unknown custom field "kind": {}'.format(custom_field["kind"]))
+
+        exclusions = field_exclusions[exclusion_lookup_name]
+        mdata = write_metadata(mdata, custom_field, exclusions)
+        schema["properties"][custom_field["id"]] = revised_type_to_schema(custom_field["dataType"],
+                                                                          custom_field["id"])
+    return schema, mdata
 
 # TODO: Not using a client, but will need one for dynamic standard fields
 client = {}
 generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions)
 
+# TODO: DESIGN - It occurs during this research that the `ga:` version of
+# fields wouldn't be best, so we may want to write metadata with the `ga:`
+# name and instead use the friendly name in the schema (this should appear
+# on the `field_infos` objects in standard_Fields and custom_fields)
+
 # Rough draft of catalog code
 
+# Take the previous function and use it to create a singer catalog with Catalog, CatalogEntry, and Schema
+def generate_catalog(client, standard_fields, custom_fields, exclusions):
+    schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions)
+    # Do the thing to generate the thing
+    catalog_entry = CatalogEntry(schema=Schema.from_dict(schema),
+                                 key_properties=['_sdc_record_hash'],
+                                 stream='report',
+                                 tap_stream_id='report',
+                                 metadata=metadata.to_list(mdata))
+    return Catalog([catalog_entry])
+
+
+#CatalogEntry(schema=Schema.from_dict(schema), key_properties=['_sdc_record_hash'], stream='report', tap_stream_id='report', metadata=mdata)

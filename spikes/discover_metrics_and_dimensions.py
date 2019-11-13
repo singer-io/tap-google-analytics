@@ -217,10 +217,6 @@ def generate_exclusions_lookup():
     Generates a map of {field_id: exclusions_list} for use in generating
     tap metadata for the catalog.
     """
-    # TODO: When applying this map, you need to expand non-custom grouped
-    # GA metadata fields into their numeric counterparts from the
-    # `ga_cubes` data set
-    # - Some `XX` fields (goals and custom dims/mets) are in their `XX` form in this file
     cubes = requests.get("https://ga-dev-tools.appspot.com/ga_cubes.json").json()
     all_fields = get_all_fields_available(cubes)
     return {f: get_field_exclusions_for(f, cubes, all_fields) for f in all_fields}

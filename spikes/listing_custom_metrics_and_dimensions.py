@@ -249,7 +249,7 @@ def get_custom_metrics(access_token, account_id, web_property_id):
     """
     Gets all metrics for the specified web_property_id.
     """
-    metrics_fields = {"id", "name", "kind", "active", "min_value", "max_value", "type"}
+    metrics_fields = {"id", "name", "kind", "active", "min_value", "max_value"}
     metrics_url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics'
 
     custom_metrics_response = requests.get(metrics_url.format(accountId=account_id,
@@ -260,6 +260,8 @@ def get_custom_metrics(access_token, account_id, web_property_id):
     metrics_field_infos = [{"account_id": account_id,
                             "web_property_id": web_property_id,
                             "profiles": profiles,
+                            "type": "METRIC",
+                            "dataType": item["type"],
                             **{k:v for k,v in item.items() if k in metrics_fields}}
                            for item in custom_metrics_response.json()['items']]
 
@@ -277,10 +279,11 @@ def get_custom_dimensions(access_token, account_id, web_property_id):
                                               params={"quotaUser": quota_user})
     profiles = get_profiles_for_property(access_token, account_id, web_property_id)
     # NOTE: Assuming that all custom dimensions are STRING, since there's no type information
-    dimensions_field_infos = [{"type": "STRING",
+    dimensions_field_infos = [{"dataType": "STRING",
                                "account_id": account_id,
                                "web_property_id": web_property_id,
                                "profiles": profiles,
+                               "type": "DIMENSION",
                                **{k:v for k,v in item.items() if k in dimensions_fields}}
                               for item in custom_dimensions_response.json()['items']]
 
