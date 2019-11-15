@@ -53,22 +53,6 @@ webprops_response = requests.get('https://www.googleapis.com/analytics/v3/manage
                                  headers=headers,
                                  params={"quotaUser": quota_user})
 
-# NOTE: This can fail if the user doesn't have enough permissions.
-# We should probably log a clear warning and just move on to skip
-# discovering custom things for this view_id
-
-# >>> webprops_response.json()
-webprops_auth_error = {'error': {'errors': [{'message': 'User does not have sufficient permissions for this account.', 'reason': 'insufficientPermissions', 'domain': 'global'}], 'code': 403, 'message': 'User does not have sufficient permissions for this account.'}}
-
-def has_insufficient_permission(response):
-    return any([e for e in response.json().get("error", {}).get("errors", [])
-                if e.get("reason") == "insufficientPermissions"])
-
-if webprops_response.status_code == 403 and has_insufficient_permission(webprops_response):
-    print("User has insufficient permissions to list WebProps for AccountID {}. Not discovering custom Metrics and Dimensions for this Account.".format(account_ids[0]))
-
-webprops_ids = [w['id'] for w in webprops_response.json()['items']]
-
 example_webprop = {'accountId': '1234567',
                    'childLink': {'href': 'https://www.googleapis.com/analytics/v3/management/accounts/1234567/webproperties/UA-1234567-16/profiles',
                                  'type': 'analytics#profiles'},
@@ -87,6 +71,23 @@ example_webprop = {'accountId': '1234567',
                    'permissions': {'effective': ['COLLABORATE',
                                                  'EDIT',
                                                  'READ_AND_ANALYZE']}}
+
+# NOTE: This can fail if the user doesn't have enough permissions.
+# We should probably log a clear warning and just move on to skip
+# discovering custom things for this view_id
+
+# >>> webprops_response.json()
+
+webprops_auth_error = {'error': {'errors': [{'message': 'User does not have sufficient permissions for this account.', 'reason': 'insufficientPermissions', 'domain': 'global'}], 'code': 403, 'message': 'User does not have sufficient permissions for this account.'}}
+
+def has_insufficient_permission(response):
+    return any([e for e in response.json().get("error", {}).get("errors", [])
+                if e.get("reason") == "insufficientPermissions"])
+
+if webprops_response.status_code == 403 and has_insufficient_permission(webprops_response):
+    print("User has insufficient permissions to list WebProps for AccountID {}. Not discovering custom Metrics and Dimensions for this Account.".format(account_ids[0]))
+
+webprops_ids = [w['id'] for w in webprops_response.json()['items']]
 
 
 # 2. Get all custom metrics for account

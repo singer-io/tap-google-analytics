@@ -302,36 +302,15 @@ known_metric_types = {"ga:transactionsPerSession": "FLOAT",
                       "ga:userTimingValue": "INTEGER",
                       "ga:CPC": "FLOAT"}
 
-# These are the fields described as STRING that are known to us to not be strings
-# TODO: There are other discrepancies, but they seem to just be things like CURRENCY, etc.
+# These are the fields whose datatype is different from the sets above,
+# and are not handled in other ways -- 'CURRENCY' or 'PERCENT'
 all_datatype_discrepancies = {f["id"]: {**known_dimension_types, **known_metric_types}[f["id"]]
                               for f in standard_fields
                               if f["id"] in {**known_dimension_types, **known_metric_types}
+                              and f['dataType'] not in ['CURRENCY', 'PERCENT']
                               and f["dataType"] != {**known_dimension_types, **known_metric_types}[f["id"]]}
 
 # ipdb> pp {f["id"]: {**known_dimension_types, **known_metric_types}[f["id"]] for f in standard_fields if f["id"] in {**known_dimension_types, **known_metric_types} and f["dataType"] != {**known_dimension_types, **known_metric_types}[f["id"]] and f["dataType"] == "STRING"}
-fields_that_are_not_actually_strings = {'ga:cohortNthDay': 'INTEGER',
-                                        'ga:cohortNthMonth': 'INTEGER',
-                                        'ga:cohortNthWeek': 'INTEGER',
-                                        'ga:date': 'DATETIME',
-                                        'ga:dateHour': 'DATETIME',
-                                        'ga:daysSinceLastSession': 'INTEGER',
-                                        'ga:daysToTransaction': 'INTEGER',
-                                        'ga:latitude': 'FLOAT',
-                                        'ga:longitude': 'FLOAT',
-                                        'ga:nthDay': 'INTEGER',
-                                        'ga:nthHour': 'INTEGER',
-                                        'ga:nthMinute': 'INTEGER',
-                                        'ga:nthMonth': 'INTEGER',
-                                        'ga:nthWeek': 'INTEGER',
-                                        'ga:pageDepth': 'INTEGER',
-                                        'ga:screenDepth': 'INTEGER',
-                                        'ga:sessionCount': 'INTEGER',
-                                        'ga:sessionsToTransaction': 'INTEGER',
-                                        'ga:subContinentCode': 'INTEGER',
-                                        'ga:visitCount': 'INTEGER',
-                                        'ga:visitLength': 'INTEGER',
-                                        'ga:visitsToTransaction': 'INTEGER'}
 
 integer_field_overrides = {'ga:cohortNthDay',
                            'ga:cohortNthMonth',
@@ -356,8 +335,17 @@ datetime_field_overrides = {'ga:date',
                             'ga:dateHour'}
 
 float_field_overrides = {'ga:latitude',
-                           'ga:longitude'}
-
+                         'ga:longitude',
+                         'ga:avgScreenviewDuration',
+                         'ga:avgSearchDuration',
+                         'ga:avgSessionDuration',
+                         'ga:avgTimeOnPage',
+                         'ga:cohortSessionDurationPerUser',
+                         'ga:cohortSessionDurationPerUserWithLifetimeCriteria',
+                         'ga:searchDuration',
+                         'ga:sessionDuration',
+                         'ga:timeOnPage',
+                         'ga:timeOnScreen'}
 
 def revised_type_to_schema(ga_type, field_id):
     if field_id in datetime_field_overrides:
