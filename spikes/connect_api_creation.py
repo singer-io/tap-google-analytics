@@ -17,6 +17,7 @@ import requests
 from pprint import pprint
 import random
 
+
 headers = {"Content-Type": "application/json",
            "Authorization": "Bearer {}".format(os.getenv("CONNECT_API_TOKEN"))}
 stitch_api_base_url = os.getenv("CONNECT_API_BASE_URL")
@@ -64,6 +65,8 @@ streams_response = requests.get(stitch_api_base_url + "/v4/sources/{}/streams".f
 stream_id = streams_response.json()[0]['stream_id']
 tap_stream_id = streams_response.json()[0]['tap_stream_id']
 schemas_response = requests.get(stitch_api_base_url + "/v4/sources/{}/streams/{}".format(source_id, stream_id), headers=headers)
+
+
 
 # 2a. Send metadata that defines a few reports to the API
 # Use the PUT route for the `source_id` above to send over metadata for the `tap-google-analytics.reports` key, root-level
@@ -130,6 +133,7 @@ assert fully_configured_step_response.json()['report_card']['current_step_type']
 # Potential CON:
 # - How to document this for folks? Connect API section in regular docs?
 # - How to enforce field exclusions this way? The onus is on the user to abide by the `fieldExclusions` metadata
+# - How does State work with this method? Since the streams are so dynamic, do we clear if a stream gets removed?
 
 # ---------------------------------
 
@@ -174,30 +178,6 @@ schemas_response = [requests.get(stitch_api_base_url + "/v4/sources/{}/streams/{
 # - Refer to the stream by its tap_stream_id
 # - Mark "selected: true" to pass the report card step
 
-
-                # {
-                #     "name": "My Session Stream",
-                #     "metrics": [
-                #         "ga:users",
-                #         "ga:newUsers",
-                #         "ga:sessions",
-                #         "ga:sessionsPerUser",
-                #         "ga:avgSessionDuration",
-                #         "ga:pageviews",
-                #         "ga:pageviewsPerSession",
-                #         "ga:avgTimeOnPage",
-                #         "ga:bounceRate",
-                #         "ga:exitRate" 
-                #     ],
-                #     "dimensions": [
-                #         "ga:date"
-                #     ]
-                # },
-                # {
-                #     "name": "my_other_report",
-                #     "metrics": ["ga:users", "ga:newUsers", "ga:sessionsPerUser"],
-                #     "dimensions": ["ga:userType"]
-                # }]
 streams = []
 for tap_stream_id in tap_stream_ids:
     if tap_stream_id == "my_other_report":
@@ -243,14 +223,15 @@ for tap_stream_id in tap_stream_ids:
 # - Maybe moot, since in a real situation, the user would have to look at
 # the metadata produced by the tap marking them as metrics and dimensions
 
-put_metadata_response = requests.put(stitch_api_base_url + "/v4/sources/{}/streams/metadata".format(source_id), headers=headers, json={"streams":streams})
+put_metadata_response = requests.put(stitch_api_base_url + "/v4/sources/{}/streams/metadata".format(source_id), headers=headers, json={"streams": streams})
 
 # 2b. Get report card marked "fully_configured"
 fully_configured_step_response = requests.get(stitch_api_base_url+"/v4/sources/{}".format(source_id), headers=headers)
 
 assert fully_configured_step_response.json()['report_card']['current_step_type'] == 'fully_configured'
 
-
+import ipdb; ipdb.set_trace()
+1+1
 
 # PROS and CONS
 # {'metadata': [],
