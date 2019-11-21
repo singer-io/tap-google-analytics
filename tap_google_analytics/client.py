@@ -17,6 +17,20 @@ class Client():
         self.quota_user = config.get("quota_user")
         self.user_agent = config.get("user_agent")
 
+        self.profile_lookup = {}
+        self.__populate_profile_lookup()
+
+    def __populate_profile_lookup(self):
+        """
+        Get all profiles available and associate them with their web property
+        and account IDs to be looked up later during discovery.
+        """
+        for account_id in self.get_accounts_for_token():
+            for web_property_id in self.get_web_properties_for_account(account_id):
+                for profile_id in self.get_profiles_for_property(account_id, web_property_id):
+                    self.profile_lookup[profile_id] = {"web_property_id": web_property_id,
+                                                       "account_id": account_id}
+
     # Authentication and refresh
     def _ensure_access_token(self):
         if self.last_refreshed is not None and \
@@ -110,7 +124,12 @@ class Client():
                                                              webPropertyId=web_property_id))
         return [p["id"] for p in profiles_response.json()['items']]
 
-    def get_goals_for_profile(self, account_id, web_property_id, profile_id):
+    def get_goals_for_profile(self, profile_id):
+        return self.get_goals(self.profile_lookup[profile_id]["account_id"],
+                              self.profile_lookup[profile_id]["web_property_id"],
+                              profile_id)
+
+    def get_goals(self, account_id, web_property_id, profile_id):
         """
         Gets all profiles for property to associate with custom metrics and dimensions.
         """

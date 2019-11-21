@@ -3,11 +3,11 @@ from singer.catalog import write_catalog
 from .client import Client
 from .discover import discover
 
-def do_discover(client):
+def do_discover(client, profile_id):
     """
     Make request to discover.py and write result to stdout.
     """
-    catalog = discover(client)
+    catalog = discover(client, profile_id)
     write_catalog(catalog)
 
 def main():
@@ -21,7 +21,7 @@ def main():
         raise Exception("DEPRECATED: Use of the 'properties' parameter is not supported. Please use --catalog instead")
 
     if args.discover:
-        do_discover(client)
+        do_discover(client, config["view_id"])
     else:
         pass
         #raise NotImplementedError("Sync mode is not currently implemented.")
