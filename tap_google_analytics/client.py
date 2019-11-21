@@ -147,7 +147,7 @@ class Client():
         """
         Parameters:
         - profile_id - the profile for which this report is being run
-        - report_date - the day to retrieve data for, in YYYY-MM-DD format, to limit report data
+        - report_date - the day to retrieve data for, as a Python datetime object, to limit report data
         - metrics - list of metrics, of the form ["ga:metric1", "ga:metric2", ...]
         - dimensions - list of dimensions, of the form ["ga:dim1", "ga:dim2", ...]
 
@@ -156,15 +156,16 @@ class Client():
         """
         nextPageToken = None
         while True:
+            report_date_string = report_date.strftime("%Y-%m-%d")
             body = {"reportRequests":
                     [{"viewId": profile_id,
-                      "dateRanges": [{"startDate": report_date,
-                                      "endDate": report_date}],
+                      "dateRanges": [{"startDate": report_date_string,
+                                      "endDate": report_date_string}],
                       "metrics": [{"expression": m} for m in metrics],
                       "dimensions": [{"name": d} for d in dimensions]}]}
             if nextPageToken:
                 body["reportRequests"][0]["pageToken"] = nextPageToken
-            report_response = self.post('https://analyticsreporting.googleapis.com/v4/reports:batchGet', body)
+            report_response = self.post("https://analyticsreporting.googleapis.com/v4/reports:batchGet", body)
             report = report_response.json()
 
             # Assoc in the request data to be used by the caller

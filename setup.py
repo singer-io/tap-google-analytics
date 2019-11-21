@@ -18,6 +18,7 @@ setup(
             'ipdb==0.11',
             'pylint==2.1.1',
             'astroid==2.1.0',
+            'nose'
         ]
     },
     entry_points="""
