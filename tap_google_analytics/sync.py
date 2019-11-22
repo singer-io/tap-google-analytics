@@ -3,7 +3,7 @@ import hashlib
 import json
 import singer
 
-def generate_sdc_record_hash(report, row, report_date):
+def generate_sdc_record_hash(report, row, start_date, end_date):
     """
     Generates a SHA 256 hash to be used as the primary key for records
     associated with a report. This consists of a list containing:
@@ -18,10 +18,10 @@ def generate_sdc_record_hash(report, row, report_date):
     REQUIRE a major version bump! As it will invalidate all previous
     primary keys and cause new data to be appended.
     """
+    # TODO: Add account_id, web_property_id, and profile_id into this
     dimensions_headers = report["columnHeader"]["dimensions"]
 
     dimensions_pairs = sorted(zip(dimensions_headers, row["dimensions"]), key=lambda x: x[0])
-    start_date, end_date = report_date, report_date
     
     hash_source = json.dumps([dimensions_pairs, start_date, end_date]).encode('utf-8')
     return hashlib.sha256(hash_source).hexdigest()
@@ -41,6 +41,8 @@ def report_to_records(raw_report):
     per request. For optimizations, the structure of the response will
     change, and this will need to be refactored.
     """
+    # TODO: Handle "isSampledData" keys and values, either in the records.
+    # TODO: Add in account, web_property, and profile IDs to records
     report = raw_report["reports"][0]
     column_headers = report["columnHeader"]
     metrics_headers = [mh["name"] for mh in column_headers["metricHeader"]["metricHeaderEntries"]]
@@ -52,7 +54,7 @@ def report_to_records(raw_report):
         record.update(zip(metrics_headers, row["metrics"][0]["values"]))
 
         report_date = raw_report["reportDate"].strftime("%Y-%m-%d")
-        _sdc_record_hash = generate_sdc_record_hash(report, row, report_date)
+        _sdc_record_hash = generate_sdc_record_hash(report, row, report_date, report_date)
         record["_sdc_record_hash"] = _sdc_record_hash
 
         report_date_string = report_date
@@ -70,6 +72,8 @@ def sync_report(client, report, start_date, end_date, state):
     report = {"name": stream.tap_stream_id, "metrics": metrics, "dimensions": dimensions}
     """
     all_data_golden = True
+    # TODO: Is it better to query by multiple days if `ga:date` is present?
+    # - If so, we can optimize the calls here to generate date ranges and reduce request volume
     for report_date in generate_report_dates(start_date, end_date):
         for raw_report_response in client.get_report(report['profile_id'], report_date, report['metrics'], report['dimensions']):
 

@@ -155,6 +155,8 @@ class Client():
         - A generator of a sequence of reports w/ associated metadata (metrics/dims/report_date/profile)
         """
         nextPageToken = None
+        # TODO: Optimization, if speed is an issue, up to 5 requests can be placed per HTTP batch
+        # - This will require changes to all parsing code
         while True:
             report_date_string = report_date.strftime("%Y-%m-%d")
             body = {"reportRequests":
