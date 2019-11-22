@@ -112,14 +112,27 @@ def handle_static_XX_field(field, field_exclusions):
 
     return sub_schemas, sub_metadata
 
-def get_dynamic_field_names(client, field):
-    # TODO: This is mocked, do the real thing as we discover cases, please
-    # TODO: This should throw if the field name is not known, to determine all known fields over time
-    # - "Field" here is an XX field related to "goals" use client to discover goals
-    # - It seems that this is generating field names for `customVarNameXX` etc. Those should just return empty list for now
-    return [field['id'].replace('XX',str(i)) for i in range(1,5)]
 
-def handle_dynamic_XX_field(client, field, field_exclusions):
+goal_related_field_ids = ['ga:goalXXStarts',
+                          'ga:goalXXCompletions',
+                          'ga:goalXXValue',
+                          'ga:goalXXConversionRate',
+                          'ga:goalXXAbandons',
+                          'ga:goalXXAbandonRate',
+                          'ga:searchGoalXXConversionRate']
+
+def get_dynamic_field_names(client, field, profile_id):
+    """
+    For known field types, retrieve their numeric forms through the client
+    on a case-by-case basis (e.g., goals)
+    """
+    if field['id'] in goal_related_field_ids:
+        return [field['id'].replace('XX', str(i)) for i in client.get_goals_for_profile(profile_id)]
+    else:
+        # Skip unknown, or already handled, dynamic fields
+        return []
+
+def handle_dynamic_XX_field(client, field, field_exclusions, profile_id):
     """
     Discovers dynamic names of a given XX field using `client` with
     `get_dynamic_field_names` and matches them with the exclusions known
@@ -130,7 +143,7 @@ def handle_dynamic_XX_field(client, field, field_exclusions):
     - Sub Schemas  {"<numeric_field_id>": {...field schema}, ...}
     - Sub Metadata {"numeric_field_id>": {...exclusions metadata value}, ...}
     """
-    dynamic_field_names = get_dynamic_field_names(client, field)
+    dynamic_field_names = get_dynamic_field_names(client, field, profile_id)
 
     sub_schemas = {d: type_to_schema(field["dataType"],field["id"])
                    for d in dynamic_field_names}
@@ -150,7 +163,7 @@ def write_metadata(mdata, field, exclusions):
 
     return mdata
 
-def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions):
+def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions, profile_id):
     schema = {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"}}}
     mdata = metadata.get_standard_metadata(schema=schema, key_properties=["_sdc_record_hash"])
     mdata = metadata.to_map(mdata)
@@ -166,7 +179,7 @@ def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusi
                 specific_field = {**standard_field, **{"id": calculated_id}}
                 mdata = write_metadata(mdata, specific_field, exclusions)
         elif is_dynamic_XX_field(standard_field["id"], field_exclusions):
-            sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, field_exclusions)
+            sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, field_exclusions, profile_id)
             schema["properties"].update(sub_schemas)
             for calculated_id, exclusions in sub_mdata.items():
                 specific_field = {**standard_field, **{"id": calculated_id}}
@@ -213,9 +226,11 @@ def generate_exclusions_lookup(client):
     all_fields = get_all_exclusion_fields_available(raw_field_exclusions)
     return {f: get_field_exclusions_for(f, raw_field_exclusions, all_fields) for f in all_fields}
 
-def get_custom_metrics(client, account_id, web_property_id):
-    custom_metrics = client.get_custom_metrics(account_id, web_property_id)
+def get_custom_metrics(client, profile_id):
+    custom_metrics = client.get_custom_metrics_for_profile(profile_id)
     metrics_fields = {"id", "name", "kind", "active", "min_value", "max_value"}
+    account_id = client.profile_lookup[profile_id]["account_id"]
+    web_property_id = client.profile_lookup[profile_id]["web_property_id"]
     profiles = client.get_profiles_for_property(account_id, web_property_id)
     return  [{"account_id": account_id,
               "web_property_id": web_property_id,
@@ -225,9 +240,11 @@ def get_custom_metrics(client, account_id, web_property_id):
               **{k:v for k,v in item.items() if k in metrics_fields}}
              for item in custom_metrics['items']]
 
-def get_custom_dimensions(client, account_id, web_property_id):
-    custom_dimensions = client.get_custom_dimensions(account_id, web_property_id)
+def get_custom_dimensions(client, profile_id):
+    custom_dimensions = client.get_custom_dimensions_for_profile(profile_id)
     dimensions_fields = {"id", "name", "kind", "active"}
+    account_id = client.profile_lookup[profile_id]["account_id"]
+    web_property_id = client.profile_lookup[profile_id]["web_property_id"]
     profiles = client.get_profiles_for_property(account_id, web_property_id)
     return [{"dataType": "STRING",
              "account_id": account_id,
@@ -237,13 +254,10 @@ def get_custom_dimensions(client, account_id, web_property_id):
              **{k:v for k,v in item.items() if k in dimensions_fields}}
             for item in custom_dimensions['items']]
 
-def get_custom_fields(client):
-    # TODO: Does this need to discover ALL available? or just those for the view_id(s) provided?
+def get_custom_fields(client, profile_id):
     custom_metrics_and_dimensions = []
-    for account_id in client.get_accounts_for_token():
-        for web_property_id in client.get_web_properties_for_account(account_id):
-            custom_metrics_and_dimensions.extend(get_custom_dimensions(client, account_id, web_property_id))
-            custom_metrics_and_dimensions.extend(get_custom_metrics(client, account_id, web_property_id))
+    custom_metrics_and_dimensions.extend(get_custom_dimensions(client, profile_id))
+    custom_metrics_and_dimensions.extend(get_custom_metrics(client, profile_id))
     return custom_metrics_and_dimensions
 
 
@@ -254,10 +268,13 @@ def transform_field(field):
 
 def get_standard_fields(client):
     metadata_response = client.get_field_metadata()
-    return [transform_field(f) for f in metadata_response["items"]]
+    # NB: These fields' specific names aren't discoverable, we think
+    #     "customVar*" is deprecated and "calcMetric" is beta.
+    unsupported_fields = {"ga:customVarValueXX", "ga:customVarNameXX", "ga:calcMetric_<NAME>"}
+    return [transform_field(f) for f in metadata_response["items"] if f["id"] not in unsupported_fields]
 
-def generate_catalog(client, standard_fields, custom_fields, exclusions):
-    schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, exclusions)
+def generate_catalog(client, standard_fields, custom_fields, exclusions, profile_id):
+    schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, exclusions, profile_id)
     # Do the thing to generate the thing
     catalog_entry = CatalogEntry(schema=Schema.from_dict(schema),
                                  key_properties=['_sdc_record_hash'],
@@ -266,13 +283,13 @@ def generate_catalog(client, standard_fields, custom_fields, exclusions):
                                  metadata=metadata.to_list(mdata))
     return Catalog([catalog_entry])
 
-def discover(client):
+def discover(client, profile_id):
     # Draw from spike to discover all the things
     # Get field_infos (standard and custom)
     LOGGER.info("Discovering standard fields...")
     standard_fields = get_standard_fields(client)
     LOGGER.info("Discovering custom fields...")
-    custom_fields = get_custom_fields(client)
+    custom_fields = get_custom_fields(client, profile_id)
     LOGGER.info("Generating field exclusions...")
     exclusions = generate_exclusions_lookup(client)
-    return generate_catalog(client, standard_fields, custom_fields, exclusions)
+    return generate_catalog(client, standard_fields, custom_fields, exclusions, profile_id)

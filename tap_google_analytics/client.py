@@ -17,6 +17,20 @@ class Client():
         self.quota_user = config.get("quota_user")
         self.user_agent = config.get("user_agent")
 
+        self.profile_lookup = {}
+        self.__populate_profile_lookup()
+
+    def __populate_profile_lookup(self):
+        """
+        Get all profiles available and associate them with their web property
+        and account IDs to be looked up later during discovery.
+        """
+        for account_id in self.get_accounts_for_token():
+            for web_property_id in self.get_web_properties_for_account(account_id):
+                for profile_id in self.get_profiles_for_property(account_id, web_property_id):
+                    self.profile_lookup[profile_id] = {"web_property_id": web_property_id,
+                                                       "account_id": account_id}
+
     # Authentication and refresh
     def _ensure_access_token(self):
         if self.last_refreshed is not None and \
@@ -101,7 +115,7 @@ class Client():
         #TODO: should we add logic to skip deactivated webprops?
         return webprops_ids
 
-    def get_profiles_for_property(self,  account_id, web_property_id):
+    def get_profiles_for_property(self, account_id, web_property_id):
         """
         Gets all profiles for property to associate with custom metrics and dimensions.
         """
@@ -110,9 +124,17 @@ class Client():
                                                              webPropertyId=web_property_id))
         return [p["id"] for p in profiles_response.json()['items']]
 
-    def get_goals_for_profile(self, account_id, web_property_id, profile_id):
+    def get_goals_for_profile(self, profile_id):
         """
-        Gets all profiles for property to associate with custom metrics and dimensions.
+        Gets all goals for a profile_id.
+        """
+        return self.get_goals(self.profile_lookup[profile_id]["account_id"],
+                              self.profile_lookup[profile_id]["web_property_id"],
+                              profile_id)
+
+    def get_goals(self, account_id, web_property_id, profile_id):
+        """
+        Gets all goal IDs for property and account to name custom metrics and dimensions.
         """
         profiles_url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals'
         goals_response = self.get(profiles_url.format(accountId=account_id,
@@ -120,15 +142,30 @@ class Client():
                                                           profileId=profile_id))
         return [g["id"] for g in goals_response.json()['items']]
 
+    def get_custom_metrics_for_profile(self, profile_id):
+        """
+        Get all custom metrics associated with the given profile ID.
+        """
+        return self.get_custom_metrics(self.profile_lookup[profile_id]["account_id"],
+                                       self.profile_lookup[profile_id]["web_property_id"])
+
     def get_custom_metrics(self, account_id, web_property_id):
         """
         Gets all metrics for the specified web_property_id.
+
         """
         metrics_url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics'
 
         custom_metrics_response = self.get(metrics_url.format(accountId=account_id,
                                                                   webPropertyId=web_property_id))
         return custom_metrics_response.json()
+
+    def get_custom_dimensions_for_profile(self, profile_id):
+        """
+        Get all custom dimensions associated with the given profile ID.
+        """
+        return self.get_custom_dimensions(self.profile_lookup[profile_id]["account_id"],
+                                          self.profile_lookup[profile_id]["web_property_id"])
 
     def get_custom_dimensions(self, account_id, web_property_id):
         """

@@ -59,13 +59,11 @@ def do_sync(client, config, catalog, state):
 
         sync_report(client, report, start_date, end_date, state)
 
-def do_discover(client):
+def do_discover(client, profile_id):
     """
     Make request to discover.py and write result to stdout.
     """
-    # TODO: The working design will have the option of pre-defined reports that can (not?) be customized
-    # - This will have to generate schemas for each and send them off. Hopefully this doesn't cause issues with menagerie due to the volume of metadata.
-    catalog = discover(client)
+    catalog = discover(client, profile_id)
     write_catalog(catalog)
 
 def main():
@@ -81,7 +79,7 @@ def main():
         raise Exception("DEPRECATED: Use of the 'properties' parameter is not supported. Please use --catalog instead")
 
     if args.discover:
-        do_discover(client)
+        do_discover(client, config["view_id"])
     else:
         do_sync(client, config, catalog, state)
 
