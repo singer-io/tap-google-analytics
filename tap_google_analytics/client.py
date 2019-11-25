@@ -112,7 +112,6 @@ class Client():
         """ Return a list of webproperty IDs for the account specified. """
         webprops_response = self.get('https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties'.format(accountId=account_id))
         webprops_ids = [w['id'] for w in webprops_response.json()['items']]
-        #TODO: should we add logic to skip deactivated webprops?
         return webprops_ids
 
     def get_profiles_for_property(self, account_id, web_property_id):
@@ -209,6 +208,8 @@ class Client():
 
             # Assoc in the request data to be used by the caller
             report.update({"profileId": profile_id,
+                           "webPropertyId": self.profile_lookup[profile_id]["web_property_id"],
+                           "accountId": self.profile_lookup[profile_id]["account_id"],
                            "reportDate": report_date,
                            "metrics": metrics,
                            "dimensions": dimensions})

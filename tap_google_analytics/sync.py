@@ -3,10 +3,12 @@ import hashlib
 import json
 import singer
 
-def generate_sdc_record_hash(report, row, start_date, end_date):
+def generate_sdc_record_hash(raw_report, row, start_date, end_date):
     """
     Generates a SHA 256 hash to be used as the primary key for records
-    associated with a report. This consists of a list containing:
+    associated with a report. This consists of a UTF-8 encoded JSON list
+    containing:
+    - The account_id, web_property_id, profile_id of the associated report
     - Pairs of ("ga:dimension_name", "dimension_value")
     - Report start_date value in YYYY-mm-dd format
     - Report end_date value in YYYY-mm-dd format
@@ -18,15 +20,25 @@ def generate_sdc_record_hash(report, row, start_date, end_date):
     REQUIRE a major version bump! As it will invalidate all previous
     primary keys and cause new data to be appended.
     """
-    # TODO: Add account_id, web_property_id, and profile_id into this
-    dimensions_headers = report["columnHeader"]["dimensions"]
+    dimensions_headers = raw_report["reports"][0]["columnHeader"]["dimensions"]
+    profile_id = raw_report["profileId"]
+    web_property_id = raw_report["webPropertyId"]
+    account_id = raw_report["accountId"]
 
     dimensions_pairs = sorted(zip(dimensions_headers, row["dimensions"]), key=lambda x: x[0])
-    
-    hash_source = json.dumps([dimensions_pairs, start_date, end_date]).encode('utf-8')
-    return hashlib.sha256(hash_source).hexdigest()
-    
-    
+
+    # NB: Do not change the ordering of this list, it is the source of the PK hash
+    hash_source_data = [account_id,
+                        web_property_id,
+                        profile_id,
+                        dimensions_pairs,
+                        start_date.strftime("%Y-%m-%d"),
+                        end_date.strftime("%Y-%m-%d")]
+
+    hash_source_bytes = json.dumps(hash_source_data).encode('utf-8')
+    return hashlib.sha256(hash_source_bytes).hexdigest()
+
+
 def generate_report_dates(start_date, end_date):
     total_days = (end_date - start_date).days
     # NB: Add a day to be inclusive of both start and end
@@ -42,24 +54,27 @@ def report_to_records(raw_report):
     change, and this will need to be refactored.
     """
     # TODO: Handle "isSampledData" keys and values, either in the records.
-    # TODO: Add in account, web_property, and profile IDs to records
     report = raw_report["reports"][0]
     column_headers = report["columnHeader"]
     metrics_headers = [mh["name"] for mh in column_headers["metricHeader"]["metricHeaderEntries"]]
     dimensions_headers = column_headers["dimensions"]
-    
+
     for row in report.get("data", {}).get("rows", []):
         record = {}
         record.update(zip(dimensions_headers, row["dimensions"]))
         record.update(zip(metrics_headers, row["metrics"][0]["values"]))
 
-        report_date = raw_report["reportDate"].strftime("%Y-%m-%d")
-        _sdc_record_hash = generate_sdc_record_hash(report, row, report_date, report_date)
+        report_date = raw_report["reportDate"]
+        _sdc_record_hash = generate_sdc_record_hash(raw_report, row, report_date, report_date)
         record["_sdc_record_hash"] = _sdc_record_hash
 
-        report_date_string = report_date
+        report_date_string = report_date.strftime("%Y-%m-%d")
         record["start_date"] = report_date_string
         record["end_date"] = report_date_string
+
+        record["account_id"] = raw_report["accountId"]
+        record["web_property_id"] = raw_report["webPropertyId"]
+        record["profile_id"] = raw_report["profileId"]
 
         yield record
 
@@ -68,7 +83,7 @@ def sync_report(client, report, start_date, end_date, state):
     Run a sync, beginning from either the start_date or bookmarked date,
     requesting a report per day, until the last full day of data. (e.g.,
     "Yesterday")
-    
+
     report = {"name": stream.tap_stream_id, "metrics": metrics, "dimensions": dimensions}
     """
     all_data_golden = True
@@ -87,7 +102,7 @@ def sync_report(client, report, start_date, end_date, state):
 
             if not is_data_golden:
                 print("FOUND NON GOLDEN DATA")
-            
+
             if all_data_golden:
                 singer.write_bookmark(state,
                                       report["name"],
@@ -97,5 +112,3 @@ def sync_report(client, report, start_date, end_date, state):
                 if not is_data_golden:
                     # Stop bookmarking on first "isDataGolden": False
                     all_data_golden = False
-
-

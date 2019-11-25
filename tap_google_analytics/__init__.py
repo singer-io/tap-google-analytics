@@ -28,10 +28,6 @@ def do_sync(client, config, catalog, state):
     Translate metadata into a set of metrics and dimensions and call out
     to sync to generate the required reports.
     """
-    # TODO: Initially, lets rely on one report and use field selection metadata to construct the report request
-    # - This can be expanded to support multiple/reports/profiles or a different kind of metadata, if needed
-    # TODO: Track the dimension keys in the state and if they changed, then send an activate_version message?
-    # - Reset the table entirely (clear bookmark, start over from start_date)
     selected_streams = catalog.get_selected_streams(state)
     for stream in selected_streams:
         metrics = []
@@ -50,7 +46,6 @@ def do_sync(client, config, catalog, state):
         start_date = get_start_date(config, state, stream.tap_stream_id)
         end_date = get_end_date(config)
 
-        # TODO: bookmark_properties? What are these used for? We could have start_date as a bookmark, but does it matter?
         singer.write_schema(
             stream.tap_stream_id,
             stream.schema.to_dict(),

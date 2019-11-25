@@ -271,6 +271,7 @@ def get_standard_fields(client):
 
 def generate_catalog(client, standard_fields, custom_fields, exclusions, profile_id):
     schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, exclusions, profile_id)
+    # TODO: Make sure the generated schema has all added fields (e.g., profile_id, etc.)
     # Do the thing to generate the thing
     catalog_entry = CatalogEntry(schema=Schema.from_dict(schema),
                                  key_properties=['_sdc_record_hash'],
