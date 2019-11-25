@@ -53,7 +53,8 @@ def report_to_records(raw_report):
     per request. For optimizations, the structure of the response will
     change, and this will need to be refactored.
     """
-    # TODO: Handle "isSampledData" keys and values, either in the records.
+    # TODO: Handle data sampling keys and values, either in the records or as a separate stream? They look like arrays.
+    # - https://developers.google.com/analytics/devguides/reporting/core/v4/rest/v4/reports/batchGet#ReportData
     report = raw_report["reports"][0]
     column_headers = report["columnHeader"]
     metrics_headers = [mh["name"] for mh in column_headers["metricHeader"]["metricHeaderEntries"]]
