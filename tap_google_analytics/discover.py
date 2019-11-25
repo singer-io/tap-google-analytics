@@ -48,7 +48,6 @@ def type_to_schema(ga_type, field_id):
         # https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters#ecomm
         return {"type": ["number", "null"]}
     elif ga_type == 'PERCENT':
-        # TODO: Unclear whether these come back as "0.25%" or just "0.25"
         return {"type": ["number", "null"]}
     elif ga_type == 'TIME':
         return {"type": ["string", "null"]}
@@ -157,9 +156,6 @@ def write_metadata(mdata, field, exclusions):
     mdata = metadata.write(mdata, ("properties", field["id"]), "inclusion", "available")
     mdata = metadata.write(mdata, ("properties", field["id"]), "fieldExclusions", list(exclusions))
     mdata = metadata.write(mdata, ("properties", field["id"]), "behavior", field["type"])
-
-    # TODO: What other pieces of metadata do we need? probably tap_google_analytics.ga_name, tap_google_analytics.profile_id, etc?
-    # - Also, metric/dimension needs to be in metadata for the UI (refer to adwords for key) 'behavior'
 
     return mdata
 
