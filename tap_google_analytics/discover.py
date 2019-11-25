@@ -73,7 +73,9 @@ def is_static_XX_field(field_id, field_exclusions):
     If the field_exclusions map does NOT have the `XX` version in it, this
     function assumes that it has only the numeric versions.
     """
-    return 'XX' in field_id and field_id not in field_exclusions
+    return ('XX' in field_id
+            and field_id not in field_exclusions
+            and field_id not in ["ga:metricXX", "ga:dimensionXX"])
 
 def is_dynamic_XX_field(field_id, field_exclusions):
     """
@@ -88,7 +90,9 @@ def is_dynamic_XX_field(field_id, field_exclusions):
     If the field_exclusions map DOES have the `XX` version in it, this
     function assumes that the field is dynamically discovered.
     """
-    return 'XX' in field_id and field_id in field_exclusions
+    return ('XX' in field_id
+            and field_id in field_exclusions
+            and field_id not in ["ga:metricXX", "ga:dimensionXX"])
 
 def handle_static_XX_field(field, field_exclusions):
     """
@@ -159,13 +163,39 @@ def write_metadata(mdata, field, exclusions):
 
     return mdata
 
+def update_referenced_exclusions(dynamic_field_map, mdata):
+    """
+    Go through each `XX` field name in `dynamic_field_map`, and for every
+    value in its `exclusions` key, update their associated metadata to
+    include each of the "numeric" names in its `calculated_ids` key, and
+    remove the `XX` field from the referenced exclusions metadata.
+
+    Currently, this code does not handle references between two dynamic
+    fields, and as such, will error if that case is detected.
+    """
+    for xx_id, mappings in dynamic_field_map.items():
+        for referenced_exclusion in mappings["exclusions"]:
+            if 'XX' in referenced_exclusion:
+                raise Exception("Discovery failed. Found dynamic field that references another dynamic field. This should not happen.")
+            referenced_exclusions_list = metadata.get(mdata,
+                                                      ("properties", referenced_exclusion),
+                                                      "fieldExclusions")
+            if referenced_exclusions_list is None:
+                # NB: Indicates that this field is deprecated by GA, and we are not discovering it.
+                continue
+            referenced_exclusions_list.extend(mappings["calculated_ids"])
+            referenced_exclusions_list.remove(xx_id)
+
 def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions, profile_id):
     schema = {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"}}}
     mdata = metadata.get_standard_metadata(schema=schema, key_properties=["_sdc_record_hash"])
     mdata = metadata.to_map(mdata)
 
+    dynamic_field_map = {}
+
     for standard_field in standard_fields:
-        if standard_field['status'] == 'DEPRECATED':
+        if (standard_field['status'] == 'DEPRECATED'
+            or standard_field['id'] in ["ga:metricXX", "ga:dimensionXX"]):
             continue
         matching_fields = []
         if is_static_XX_field(standard_field["id"], field_exclusions):
@@ -177,7 +207,10 @@ def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusi
         elif is_dynamic_XX_field(standard_field["id"], field_exclusions):
             sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, field_exclusions, profile_id)
             schema["properties"].update(sub_schemas)
+            dynamic_field_map[standard_field["id"]] = {"calculated_ids": []}
             for calculated_id, exclusions in sub_mdata.items():
+                dynamic_field_map[standard_field["id"]]["calculated_ids"].append(calculated_id)
+                dynamic_field_map[standard_field["id"]]["exclusions"] = exclusions
                 specific_field = {**standard_field, **{"id": calculated_id}}
                 mdata = write_metadata(mdata, specific_field, exclusions)
         else:
@@ -194,9 +227,19 @@ def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusi
             raise Exception('Unknown custom field "kind": {}'.format(custom_field["kind"]))
 
         exclusions = field_exclusions[exclusion_lookup_name]
+
+        if exclusion_lookup_name not in dynamic_field_map:
+            dynamic_field_map[exclusion_lookup_name] = {"calculated_ids": [], "exclusions": exclusions}
+
+        dynamic_field_map[exclusion_lookup_name]["calculated_ids"].append(custom_field["id"])
+
         mdata = write_metadata(mdata, custom_field, exclusions)
         schema["properties"][custom_field["id"]] = type_to_schema(custom_field["dataType"],
                                                                           custom_field["id"])
+
+    # Update all field exclusions once metadata is created
+    update_referenced_exclusions(dynamic_field_map, mdata)
+
     return schema, mdata
 
 def get_all_exclusion_fields_available(raw_field_exclusions):
