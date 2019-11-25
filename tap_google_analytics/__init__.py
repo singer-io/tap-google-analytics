@@ -46,13 +46,15 @@ def do_sync(client, config, catalog, state):
         start_date = get_start_date(config, state, stream.tap_stream_id)
         end_date = get_end_date(config)
 
+        schema = stream.schema.to_dict()
+
         singer.write_schema(
             stream.tap_stream_id,
-            stream.schema.to_dict(),
+            schema,
             stream.key_properties
             )
 
-        sync_report(client, report, start_date, end_date, state)
+        sync_report(client, schema, report, start_date, end_date, state)
 
 def do_discover(client, profile_id):
     """

@@ -2,6 +2,7 @@ from datetime import timedelta
 import hashlib
 import json
 import singer
+from singer import Transformer
 
 def generate_sdc_record_hash(raw_report, row, start_date, end_date):
     """
@@ -79,7 +80,7 @@ def report_to_records(raw_report):
 
         yield record
 
-def sync_report(client, report, start_date, end_date, state):
+def sync_report(client, schema, report, start_date, end_date, state):
     """
     Run a sync, beginning from either the start_date or bookmarked date,
     requesting a report per day, until the last full day of data. (e.g.,
@@ -93,16 +94,14 @@ def sync_report(client, report, start_date, end_date, state):
     for report_date in generate_report_dates(start_date, end_date):
         for raw_report_response in client.get_report(report['profile_id'], report_date, report['metrics'], report['dimensions']):
 
-            for rec in report_to_records(raw_report_response):
-                singer.write_record(report["name"], rec)
+            with Transformer() as transformer:
+                for rec in report_to_records(raw_report_response):
+                    singer.write_record(report["name"], transformer.transform(rec, schema))
 
             # NB: Bookmark all days with "golden" data until you find the first non-golden day
             # - "golden" refers to data that will not change in future
             #   requests, so we can use it as a bookmark
             is_data_golden = raw_report_response["reports"][0]["data"]["isDataGolden"]
-
-            if not is_data_golden:
-                print("FOUND NON GOLDEN DATA")
 
             if all_data_golden:
                 singer.write_bookmark(state,
