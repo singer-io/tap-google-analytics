@@ -98,7 +98,7 @@ class Client():
         metadata_response = self.get("https://www.googleapis.com/analytics/v3/metadata/{reportType}/columns".format(reportType="ga"))
         return metadata_response.json()
 
-    def get_raw_field_exclusions(self):
+    def get_raw_cubes(self):
         cubes_response = self.get("https://ga-dev-tools.appspot.com/ga_cubes.json")
         return cubes_response.json()
 

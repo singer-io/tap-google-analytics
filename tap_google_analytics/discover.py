@@ -60,7 +60,7 @@ def type_to_schema(ga_type, field_id):
     else:
         raise Exception("Unknown Google Analytics type: {}".format(ga_type))
 
-def is_static_XX_field(field_id, field_exclusions):
+def is_static_XX_field(field_id, cubes_lookup):
     """
     GA has fields that are documented using a placeholder of `XX`, where
     the `XX` is replaced with a number in practice.
@@ -68,16 +68,16 @@ def is_static_XX_field(field_id, field_exclusions):
     Some of these are standard fields with constant numeric
     representations. These must be handled differently from other field,
     so this function will detect this case using the information we have
-    gleaned in our field_exclusions values.
+    gleaned in our cubes_lookup values.
 
-    If the field_exclusions map does NOT have the `XX` version in it, this
+    If the cubes_lookup map does NOT have the `XX` version in it, this
     function assumes that it has only the numeric versions.
     """
     return ('XX' in field_id
-            and field_id not in field_exclusions
+            and field_id not in cubes_lookup
             and field_id not in ["ga:metricXX", "ga:dimensionXX"])
 
-def is_dynamic_XX_field(field_id, field_exclusions):
+def is_dynamic_XX_field(field_id, cubes_lookup):
     """
     GA has fields that are documented using a placeholder of `XX`, where
     the `XX` is replaced with a number in practice.
@@ -87,31 +87,31 @@ def is_dynamic_XX_field(field_id, field_exclusions):
     differently from other fields as well, since the IDs must be
     discovered through their own means.
 
-    If the field_exclusions map DOES have the `XX` version in it, this
+    If the cubes_lookup map DOES have the `XX` version in it, this
     function assumes that the field is dynamically discovered.
     """
     return ('XX' in field_id
-            and field_id in field_exclusions
+            and field_id in cubes_lookup
             and field_id not in ["ga:metricXX", "ga:dimensionXX"])
 
-def handle_static_XX_field(field, field_exclusions):
+def handle_static_XX_field(field, cubes_lookup):
     """
     Uses a regex of the `XX` field's ID to discover which numeric versions
-    of a given `XX` field name we have exclusions for.
+    of a given `XX` field name we have cubes for.
 
     Generates a schema entry and metadata for each.
     Returns:
     - Sub Schemas  {"<numeric_field_id>": {...field schema}, ...}
-    - Sub Metadata {"numeric_field_id>": {...exclusions metadata value}, ...}
+    - Sub Metadata {"numeric_field_id>": {...cubes metadata value}, ...}
     """
     regex_matcher = field['id'].replace("XX", r'\d\d?')
-    matching_exclusions = {field_id: field_exclusions[field_id]
-                           for field_id in field_exclusions.keys()
+    matching_cubes = {field_id: cubes_lookup[field_id]
+                           for field_id in cubes_lookup.keys()
                            if re.match(regex_matcher, field_id)}
 
     sub_schemas = {field_id: type_to_schema(field["dataType"], field["id"])
-                     for field_id in matching_exclusions.keys()}
-    sub_metadata = matching_exclusions
+                     for field_id in matching_cubes.keys()}
+    sub_metadata = matching_cubes
 
     return sub_schemas, sub_metadata
 
@@ -135,135 +135,103 @@ def get_dynamic_field_names(client, field, profile_id):
         # Skip unknown, or already handled, dynamic fields
         return []
 
-def handle_dynamic_XX_field(client, field, field_exclusions, profile_id):
+def handle_dynamic_XX_field(client, field, cubes_lookup, profile_id):
     """
     Discovers dynamic names of a given XX field using `client` with
-    `get_dynamic_field_names` and matches them with the exclusions known
+    `get_dynamic_field_names` and matches them with the cubes known
     for the `XX` version of the name.
 
     Generates a schema entry and metadata for each.
     Returns:
     - Sub Schemas  {"<numeric_field_id>": {...field schema}, ...}
-    - Sub Metadata {"numeric_field_id>": {...exclusions metadata value}, ...}
+    - Sub Metadata {"numeric_field_id>": {...cubes metadata value}, ...}
     """
     dynamic_field_names = get_dynamic_field_names(client, field, profile_id)
 
     sub_schemas = {d: type_to_schema(field["dataType"],field["id"])
                    for d in dynamic_field_names}
 
-    sub_metadata = {r: field_exclusions[field['id']]
+    sub_metadata = {r: cubes_lookup[field['id']]
                     for r in dynamic_field_names}
     return sub_schemas, sub_metadata
 
-def write_metadata(mdata, field, exclusions):
-    """ Translate a field_info object and its exclusions into its metadata, and write it. """
+def write_metadata(mdata, field, cubes):
+    """ Translate a field_info object and its cubes into its metadata, and write it. """
     mdata = metadata.write(mdata, ("properties", field["id"]), "inclusion", "available")
-    mdata = metadata.write(mdata, ("properties", field["id"]), "fieldExclusions", list(exclusions))
+    mdata = metadata.write(mdata, ("properties", field["id"]), "tap_google_analytics.cubes", list(cubes))
     mdata = metadata.write(mdata, ("properties", field["id"]), "behavior", field["type"])
 
     return mdata
 
-def update_referenced_exclusions(dynamic_field_map, mdata):
-    """
-    Go through each `XX` field name in `dynamic_field_map`, and for every
-    value in its `exclusions` key, update their associated metadata to
-    include each of the "numeric" names in its `calculated_ids` key, and
-    remove the `XX` field from the referenced exclusions metadata.
-
-    Currently, this code does not handle references between two dynamic
-    fields, and as such, will error if that case is detected.
-    """
-    for xx_id, mappings in dynamic_field_map.items():
-        for referenced_exclusion in mappings["exclusions"]:
-            if 'XX' in referenced_exclusion:
-                raise Exception("Discovery failed. Found dynamic field that references another dynamic field. This should not happen.")
-            referenced_exclusions_list = metadata.get(mdata,
-                                                      ("properties", referenced_exclusion),
-                                                      "fieldExclusions")
-            if referenced_exclusions_list is None:
-                # NB: Indicates that this field is deprecated by GA, and we are not discovering it.
-                continue
-            referenced_exclusions_list.extend(mappings["calculated_ids"])
-            referenced_exclusions_list.remove(xx_id)
-
-def generate_catalog_entry(client, standard_fields, custom_fields, field_exclusions, profile_id):
+def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
     schema = {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"}}}
     mdata = metadata.get_standard_metadata(schema=schema, key_properties=["_sdc_record_hash"])
     mdata = metadata.to_map(mdata)
-
-    dynamic_field_map = {}
+    mdata = metadata.write(mdata, (), "tap_google_analytics.all_cubes", list(all_cubes))
 
     for standard_field in standard_fields:
         if (standard_field['status'] == 'DEPRECATED'
             or standard_field['id'] in ["ga:metricXX", "ga:dimensionXX"]):
             continue
         matching_fields = []
-        if is_static_XX_field(standard_field["id"], field_exclusions):
-            sub_schemas, sub_mdata = handle_static_XX_field(standard_field, field_exclusions)
+        if is_static_XX_field(standard_field["id"], cubes_lookup):
+            sub_schemas, sub_mdata = handle_static_XX_field(standard_field, cubes_lookup)
             schema["properties"].update(sub_schemas)
-            for calculated_id, exclusions in sub_mdata.items():
+            for calculated_id, cubes in sub_mdata.items():
                 specific_field = {**standard_field, **{"id": calculated_id}}
-                mdata = write_metadata(mdata, specific_field, exclusions)
-        elif is_dynamic_XX_field(standard_field["id"], field_exclusions):
-            sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, field_exclusions, profile_id)
+                mdata = write_metadata(mdata, specific_field, cubes)
+        elif is_dynamic_XX_field(standard_field["id"], cubes_lookup):
+            sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, cubes_lookup, profile_id)
             schema["properties"].update(sub_schemas)
-            dynamic_field_map[standard_field["id"]] = {"calculated_ids": []}
-            for calculated_id, exclusions in sub_mdata.items():
-                dynamic_field_map[standard_field["id"]]["calculated_ids"].append(calculated_id)
-                dynamic_field_map[standard_field["id"]]["exclusions"] = exclusions
+            for calculated_id, cubes in sub_mdata.items():
                 specific_field = {**standard_field, **{"id": calculated_id}}
-                mdata = write_metadata(mdata, specific_field, exclusions)
+                mdata = write_metadata(mdata, specific_field, cubes)
         else:
             schema["properties"][standard_field["id"]] = type_to_schema(standard_field["dataType"],
                                                                                  standard_field["id"])
-            mdata = write_metadata(mdata, standard_field, field_exclusions[standard_field["id"]])
+            mdata = write_metadata(mdata, standard_field, cubes_lookup[standard_field["id"]])
 
     for custom_field in custom_fields:
         if custom_field["kind"] == 'analytics#customDimension':
-            exclusion_lookup_name = 'ga:dimensionXX'
+            cubes_lookup_name = 'ga:dimensionXX'
         elif custom_field["kind"] == 'analytics#customMetric':
-            exclusion_lookup_name = 'ga:metricXX'
+            cubes_lookup_name = 'ga:metricXX'
         else:
             raise Exception('Unknown custom field "kind": {}'.format(custom_field["kind"]))
 
-        exclusions = field_exclusions[exclusion_lookup_name]
+        cubes = cubes_lookup[cubes_lookup_name]
 
-        if exclusion_lookup_name not in dynamic_field_map:
-            dynamic_field_map[exclusion_lookup_name] = {"calculated_ids": [], "exclusions": exclusions}
-
-        dynamic_field_map[exclusion_lookup_name]["calculated_ids"].append(custom_field["id"])
-
-        mdata = write_metadata(mdata, custom_field, exclusions)
+        mdata = write_metadata(mdata, custom_field, cubes)
         schema["properties"][custom_field["id"]] = type_to_schema(custom_field["dataType"],
                                                                           custom_field["id"])
 
-    # Update all field exclusions once metadata is created
-    update_referenced_exclusions(dynamic_field_map, mdata)
-
     return schema, mdata
 
-def get_all_exclusion_fields_available(raw_field_exclusions):
+def generate_cubes_lookup(raw_cubes):
     """
-    Converts the ga_cubes.json response into a set of all available fields.
-    """
-    return {e for value in raw_field_exclusions.values() for e in value.keys()}
-
-def get_field_exclusions_for(field, raw_field_exclusions, all_fields):
-    """
-    Returns the set of all fields that never occur with the specified
-    `field` in the "ga_cubes" dataset.
-    """
-    fields_available_with_field = {e for values in raw_field_exclusions.values() for e in values.keys() if field in values.keys()}
-    return all_fields - fields_available_with_field
-
-def generate_exclusions_lookup(client):
-    """
-    Generates a map of {field_id: exclusions_list} for use in generating
+    Generates a map of {field_id: cubes_list} for use in generating
     tap metadata for the catalog.
     """
-    raw_field_exclusions = client.get_raw_field_exclusions()
-    all_fields = get_all_exclusion_fields_available(raw_field_exclusions)
-    return {f: get_field_exclusions_for(f, raw_field_exclusions, all_fields) for f in all_fields}
+    cubes_lookup = {}
+    for raw_cube, fields in raw_cubes.items():
+        for field in fields:
+            if field not in cubes_lookup: cubes_lookup[field] = set()
+            cubes_lookup[field].add(raw_cube)
+    return cubes_lookup
+
+def parse_cube_definitions(client):
+    """
+    Requests cube definitions from Google Metrics and Dimensions
+    Explorer, and parses it into a structure for metadata usage.
+
+    Returns:
+       all_cubes -> names of all cubes that exist
+       cubes_lookup -> mapping of field name to compatible cubes
+    """
+    raw_cubes = client.get_raw_cubes()
+    all_cubes = set(raw_cubes.keys())
+    cubes_lookup = generate_cubes_lookup(raw_cubes)
+    return all_cubes, cubes_lookup
 
 def get_custom_metrics(client, profile_id):
     custom_metrics = client.get_custom_metrics_for_profile(profile_id)
@@ -312,8 +280,8 @@ def get_standard_fields(client):
     unsupported_fields = {"ga:customVarValueXX", "ga:customVarNameXX", "ga:calcMetric_<NAME>"}
     return [transform_field(f) for f in metadata_response["items"] if f["id"] not in unsupported_fields]
 
-def generate_catalog(client, standard_fields, custom_fields, exclusions, profile_id):
-    schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, exclusions, profile_id)
+def generate_catalog(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
+    schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
     # TODO: Make sure the generated schema has all added fields (e.g., profile_id, etc.)
     # Do the thing to generate the thing
     catalog_entry = CatalogEntry(schema=Schema.from_dict(schema),
@@ -330,6 +298,7 @@ def discover(client, profile_id):
     standard_fields = get_standard_fields(client)
     LOGGER.info("Discovering custom fields...")
     custom_fields = get_custom_fields(client, profile_id)
-    LOGGER.info("Generating field exclusions...")
-    exclusions = generate_exclusions_lookup(client)
-    return generate_catalog(client, standard_fields, custom_fields, exclusions, profile_id)
+    LOGGER.info("Parsing cube definitions...")
+    all_cubes, cubes_lookup = parse_cube_definitions(client)
+    LOGGER.info("Generating catalog...")
+    return generate_catalog(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
