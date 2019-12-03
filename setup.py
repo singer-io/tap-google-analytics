@@ -11,13 +11,15 @@ setup(
     py_modules=["tap_google_analytics"],
     install_requires=[
         "singer-python==5.9.0",
-        "requests==2.22.0"
+        "requests==2.22.0",
+        "backoff==1.8.0"
     ],
     extras_require={
         'dev': [
             'ipdb==0.11',
             'pylint==2.1.1',
             'astroid==2.1.0',
+            'nose'
         ]
     },
     entry_points="""
