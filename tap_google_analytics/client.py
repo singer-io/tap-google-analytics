@@ -1,8 +1,18 @@
+import json
+import os
 import requests
 import singer
 from singer import utils
+import backoff
 
 LOGGER = singer.get_logger()
+
+def should_giveup(e):
+    if e.response.status_code == 429:
+        error_message = e.response.json().get("error", {}).get("message")
+        if error_message:
+            LOGGER.info("Encountered 429, backing off exponentially. Details: %s", error_message)
+    return not e.response.status_code == 429
 
 class Client():
     def __init__(self, config):
@@ -16,6 +26,10 @@ class Client():
 
         self.quota_user = config.get("quota_user")
         self.user_agent = config.get("user_agent")
+
+        self.session = requests.Session()
+        if self.user_agent:
+            self.session.headers.update({"User-Agent": self.user_agent})
 
         self.profile_lookup = {}
         self.__populate_profile_lookup()
@@ -61,6 +75,12 @@ class Client():
         except:
             return False
 
+    @backoff.on_exception(backoff.expo,
+                          (requests.exceptions.RequestException),
+                          max_tries=6,
+                          giveup=should_giveup,
+                          factor=4,
+                          jitter=None)
     def _make_request(self, method, url, params=None, data=None):
         params = params or {}
         data = data or {}
@@ -70,13 +90,11 @@ class Client():
         headers = {"Authorization" : "Bearer " + self.__access_token}
         if self.quota_user:
             params["quotaUser"] = self.quota_user
-        if self.user_agent:
-            headers["User-Agent"] = self.user_agent
 
         if method == 'POST':
-            response = requests.post(url, headers=headers, params=params, json=data)
+            response = self.session.post(url, headers=headers, params=params, json=data)
         else:
-            response = requests.request(method, url, headers=headers, params=params)
+            response = self.session.request(method, url, headers=headers, params=params)
 
         error_message = self._is_json(response) and response.json().get("error", {}).get("message")
         if response.status_code == 400 and error_message:
@@ -98,9 +116,17 @@ class Client():
         metadata_response = self.get("https://www.googleapis.com/analytics/v3/metadata/{reportType}/columns".format(reportType="ga"))
         return metadata_response.json()
 
-    def get_raw_field_exclusions(self):
-        cubes_response = self.get("https://ga-dev-tools.appspot.com/ga_cubes.json")
-        return cubes_response.json()
+    def get_raw_cubes(self):
+        try:
+            cubes_response = self.get("https://ga-dev-tools.appspot.com/ga_cubes.json")
+            cubes_response.raise_for_status()
+            cubes_json = cubes_response.json()
+        except Exception as ex:
+            LOGGER.warn("Error fetching raw cubes, falling back to local copy. Exception message: %s", ex)
+            local_cubes_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ga_cubes.json")
+            with open(local_cubes_path, "r") as f:
+                cubes_json = json.load(f)
+        return cubes_json
 
     def get_accounts_for_token(self):
         """ Return a list of account IDs available to hte associated token. """
@@ -112,7 +138,6 @@ class Client():
         """ Return a list of webproperty IDs for the account specified. """
         webprops_response = self.get('https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties'.format(accountId=account_id))
         webprops_ids = [w['id'] for w in webprops_response.json()['items']]
-        #TODO: should we add logic to skip deactivated webprops?
         return webprops_ids
 
     def get_profiles_for_property(self, account_id, web_property_id):
@@ -184,7 +209,7 @@ class Client():
         """
         Parameters:
         - profile_id - the profile for which this report is being run
-        - report_date - the day to retrieve data for, in YYYY-MM-DD format, to limit report data
+        - report_date - the day to retrieve data for, as a Python datetime object, to limit report data
         - metrics - list of metrics, of the form ["ga:metric1", "ga:metric2", ...]
         - dimensions - list of dimensions, of the form ["ga:dim1", "ga:dim2", ...]
 
@@ -192,20 +217,26 @@ class Client():
         - A generator of a sequence of reports w/ associated metadata (metrics/dims/report_date/profile)
         """
         nextPageToken = None
+        # TODO: Optimization, if speed is an issue, up to 5 requests can be placed per HTTP batch
+        # - This will require changes to all parsing code
         while True:
+            report_date_string = report_date.strftime("%Y-%m-%d")
+            LOGGER.info("Making report request for report date %s (nextPageToken: %s)", report_date_string, nextPageToken)
             body = {"reportRequests":
                     [{"viewId": profile_id,
-                      "dateRanges": [{"startDate": report_date,
-                                      "endDate": report_date}],
+                      "dateRanges": [{"startDate": report_date_string,
+                                      "endDate": report_date_string}],
                       "metrics": [{"expression": m} for m in metrics],
                       "dimensions": [{"name": d} for d in dimensions]}]}
             if nextPageToken:
                 body["reportRequests"][0]["pageToken"] = nextPageToken
-            report_response = self.post('https://analyticsreporting.googleapis.com/v4/reports:batchGet', body)
+            report_response = self.post("https://analyticsreporting.googleapis.com/v4/reports:batchGet", body)
             report = report_response.json()
 
             # Assoc in the request data to be used by the caller
             report.update({"profileId": profile_id,
+                           "webPropertyId": self.profile_lookup[profile_id]["web_property_id"],
+                           "accountId": self.profile_lookup[profile_id]["account_id"],
                            "reportDate": report_date,
                            "metrics": metrics,
                            "dimensions": dimensions})
