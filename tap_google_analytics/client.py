@@ -19,6 +19,10 @@ class Client():
         self.quota_user = config.get("quota_user")
         self.user_agent = config.get("user_agent")
 
+        self.session = requests.Session()
+        if self.user_agent:
+            self.session.headers.update({"User-Agent": self.user_agent})
+
         self.profile_lookup = {}
         self.__populate_profile_lookup()
 
@@ -72,13 +76,11 @@ class Client():
         headers = {"Authorization" : "Bearer " + self.__access_token}
         if self.quota_user:
             params["quotaUser"] = self.quota_user
-        if self.user_agent:
-            headers["User-Agent"] = self.user_agent
 
         if method == 'POST':
-            response = requests.post(url, headers=headers, params=params, json=data)
+            response = self.session.post(url, headers=headers, params=params, json=data)
         else:
-            response = requests.request(method, url, headers=headers, params=params)
+            response = self.session.request(method, url, headers=headers, params=params)
 
         error_message = self._is_json(response) and response.json().get("error", {}).get("message")
         if response.status_code == 400 and error_message:
@@ -205,6 +207,7 @@ class Client():
         # - This will require changes to all parsing code
         while True:
             report_date_string = report_date.strftime("%Y-%m-%d")
+            LOGGER.info("Making report request for report date %s (nextPageToken: %s)", report_date_string, nextPageToken)
             body = {"reportRequests":
                     [{"viewId": profile_id,
                       "dateRanges": [{"startDate": report_date_string,
