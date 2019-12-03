@@ -164,7 +164,14 @@ def write_metadata(mdata, field, cubes):
     return mdata
 
 def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
-    schema = {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"}}}
+    schema = {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"},
+                                               "start_date": {"type": "string",
+                                                              "format": "date-time"},
+                                               "end_date": {"type": "string",
+                                                              "format": "date-time"},
+                                               "account_id": {"type": "string"},
+                                               "web_property_id": {"type": "string"},
+                                               "profile_id": {"type": "string"}}
     mdata = metadata.get_standard_metadata(schema=schema, key_properties=["_sdc_record_hash"])
     mdata = metadata.to_map(mdata)
     mdata = metadata.write(mdata, (), "tap_google_analytics.all_cubes", list(all_cubes))
