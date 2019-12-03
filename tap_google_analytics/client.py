@@ -3,8 +3,16 @@ import os
 import requests
 import singer
 from singer import utils
+import backoff
 
 LOGGER = singer.get_logger()
+
+def should_giveup(e):
+    if e.response.status_code == 429:
+        error_message = e.response.json().get("error", {}).get("message")
+        if error_message:
+            LOGGER.info("Encountered 429, backing off exponentially. Details: %s", error_message)
+    return not e.response.status_code == 429
 
 class Client():
     def __init__(self, config):
@@ -67,6 +75,12 @@ class Client():
         except:
             return False
 
+    @backoff.on_exception(backoff.expo,
+                          (requests.exceptions.RequestException),
+                          max_tries=6,
+                          giveup=should_giveup,
+                          factor=4,
+                          jitter=None)
     def _make_request(self, method, url, params=None, data=None):
         params = params or {}
         data = data or {}
