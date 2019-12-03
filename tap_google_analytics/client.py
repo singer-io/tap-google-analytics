@@ -1,3 +1,5 @@
+import json
+import os
 import requests
 import singer
 from singer import utils
@@ -99,8 +101,16 @@ class Client():
         return metadata_response.json()
 
     def get_raw_cubes(self):
-        cubes_response = self.get("https://ga-dev-tools.appspot.com/ga_cubes.json")
-        return cubes_response.json()
+        try:
+            cubes_response = self.get("https://ga-dev-tools.appspot.com/ga_cubes.json")
+            cubes_response.raise_for_status()
+            cubes_json = cubes_response.json()
+        except Exception as ex:
+            LOGGER.warn("Error fetching raw cubes, falling back to local copy. Exception message: %s", ex)
+            local_cubes_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ga_cubes.json")
+            with open(local_cubes_path, "r") as f:
+                cubes_json = json.load(f)
+        return cubes_json
 
     def get_accounts_for_token(self):
         """ Return a list of account IDs available to hte associated token. """
