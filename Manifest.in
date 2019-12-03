@@ -1,0 +1,2 @@
+include LICENSE
+include tap_google_analytics/ga_cubes.json

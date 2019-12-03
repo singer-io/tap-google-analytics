@@ -28,7 +28,7 @@ setup(
     """,
     packages=["tap_google_analytics"],
     package_data = {
-        # Add any hardcoded schemas here
+        "tap_google_analytics": ["tap_google_analytics/ga_cubes.json"]
     },
     include_package_data=True,
 )
