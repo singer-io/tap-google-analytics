@@ -1,5 +1,11 @@
+from datetime import timedelta
 import json
+import math
 import os
+from jwt import (
+    JWT,
+    jwk_from_pem,
+)
 import requests
 import singer
 from singer import utils
@@ -16,9 +22,14 @@ def should_giveup(e):
 
 class Client():
     def __init__(self, config):
-        self.refresh_token = config["refresh_token"]
-        self.client_id = config["client_id"]
-        self.client_secret = config["client_secret"]
+        self.auth_method = config.get("auth_method", "oauth2")
+        if self.auth_method == "oauth2":
+            self.refresh_token = config["refresh_token"]
+            self.client_id = config["client_id"]
+            self.client_secret = config["client_secret"]
+        elif self.auth_method == "service_account":
+            self.client_email = config["client_email"]
+            self.private_key = config["private_key"].encode()
 
         self.__access_token = None
         self.expires_in = 0
@@ -54,12 +65,27 @@ class Client():
         LOGGER.info("Refreshing access token.")
         self.last_refreshed = utils.now()
 
-        payload = {
-            "refresh_token": self.refresh_token,
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "grant_type": "refresh_token"
-        }
+        if self.auth_method == "oauth2":
+            payload = {
+                "refresh_token": self.refresh_token,
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "grant_type": "refresh_token"
+            }
+        else:
+            message = {
+                "iss": self.client_email,
+                "scope": "https://www.googleapis.com/auth/analytics.readonly",
+                "aud":"https://oauth2.googleapis.com/token",
+                "exp": math.floor((self.last_refreshed + timedelta(hours=1)).timestamp()),
+                "iat": math.floor(self.last_refreshed.timestamp())
+            }
+            signing_key = jwk_from_pem(self.private_key)
+            payload = {
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": JWT().encode(message, signing_key, 'RS256')
+            }
+
         token_response = requests.post("https://oauth2.googleapis.com/token", data=payload)
 
         token_response.raise_for_status()

@@ -64,8 +64,16 @@ def do_discover(client, profile_id):
     write_catalog(catalog)
 
 def main():
-    required_config_keys = ['start_date', 'client_id', 'client_secret', 'refresh_token', 'view_id']
+    required_config_keys = ['start_date', 'view_id', 'auth_method']
     args = singer.parse_args(required_config_keys)
+
+    if args.config['auth_method'] == "oauth2":
+         additional_config_keys = ['client_id', 'client_secret', 'refresh_token']
+    elif args.config['auth_method'] == "service_account":
+        additional_config_keys = ['client_email', 'private_key']
+    else:
+        raise ValueError("Config has invalid auth_method: {}".format(args.config['auth_method']))
+    singer.utils.check_config(args.config, additional_config_keys)
 
     config = args.config
     client = Client(config)
