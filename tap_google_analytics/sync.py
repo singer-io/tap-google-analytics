@@ -101,7 +101,7 @@ def sync_report(client, schema, report, start_date, end_date, state):
             # NB: Bookmark all days with "golden" data until you find the first non-golden day
             # - "golden" refers to data that will not change in future
             #   requests, so we can use it as a bookmark
-            is_data_golden = raw_report_response["reports"][0]["data"]["isDataGolden"]
+            is_data_golden = raw_report_response["reports"][0]["data"].get("isDataGolden")
 
             if all_data_golden:
                 singer.write_bookmark(state,

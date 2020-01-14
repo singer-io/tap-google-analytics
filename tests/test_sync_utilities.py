@@ -8,7 +8,7 @@ from tap_google_analytics.sync import sync_report, generate_sdc_record_hash
 reports = {
     utils.strptime_to_utc("2019-11-01"): [{"reports": [{"data": {"isDataGolden": True}}]}],
     utils.strptime_to_utc("2019-11-02"): [{"reports": [{"data": {"isDataGolden": True}}]}],
-    utils.strptime_to_utc("2019-11-03"): [{"reports": [{"data": {"isDataGolden": False}}]}],
+    utils.strptime_to_utc("2019-11-03"): [{"reports": [{"data": {}}]}],
     utils.strptime_to_utc("2019-11-04"): [{"reports": [{"data": {"isDataGolden": True}}]}],
 }
 
