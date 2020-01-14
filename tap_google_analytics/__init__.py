@@ -64,7 +64,14 @@ def do_discover(client, profile_id):
     write_catalog(catalog)
 
 def main():
-    required_config_keys = ['start_date', 'client_id', 'client_secret', 'refresh_token', 'view_id']
+    required_config_keys = ['start_date', 'view_id', 'auth_method']
+    if "refresh_token" in args.config:  # if refresh_token in config assume OAuth2 credentials
+        args.config['auth_method'] = "oauth2"
+        required_config_keys.extend(['client_id', 'client_secret', 'refresh_token'])
+    else:  # otherwise, assume Service Account details should be present
+        args.config['auth_method'] = "service_account"
+        required_config_keys.extend(['client_email', 'private_key'])
+
     args = singer.parse_args(required_config_keys)
 
     config = args.config
