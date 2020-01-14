@@ -22,7 +22,7 @@ def should_giveup(e):
 
 class Client():
     def __init__(self, config):
-        self.auth_method = config.get("auth_method", "oauth2")
+        self.auth_method = config['auth_method']
         if self.auth_method == "oauth2":
             self.refresh_token = config["refresh_token"]
             self.client_id = config["client_id"]

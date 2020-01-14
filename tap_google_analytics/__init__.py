@@ -65,15 +65,14 @@ def do_discover(client, profile_id):
 
 def main():
     required_config_keys = ['start_date', 'view_id', 'auth_method']
-    args = singer.parse_args(required_config_keys)
+    if "refresh_token" in args.config:  # if refresh_token in config assume OAuth2 credentials
+        args.config['auth_method'] = "oauth2"
+        required_config_keys.extend(['client_id', 'client_secret', 'refresh_token'])
+    else:  # otherwise, assume Service Account details should be present
+        args.config['auth_method'] = "service_account"
+        required_config_keys.extend(['client_email', 'private_key'])
 
-    if args.config['auth_method'] == "oauth2":
-         additional_config_keys = ['client_id', 'client_secret', 'refresh_token']
-    elif args.config['auth_method'] == "service_account":
-        additional_config_keys = ['client_email', 'private_key']
-    else:
-        raise ValueError("Config has invalid auth_method: {}".format(args.config['auth_method']))
-    singer.utils.check_config(args.config, additional_config_keys)
+    args = singer.parse_args(required_config_keys)
 
     config = args.config
     client = Client(config)
