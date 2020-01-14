@@ -20,7 +20,7 @@ def get_end_date(config):
 
     This can be overridden by the `end_date` config.json value.
     """
-    if 'end_date' in config: return config['end_date']
+    if 'end_date' in config: return utils.strptime_to_utc(config['end_date'])
     return (utils.now() - timedelta(1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
 def do_sync(client, config, catalog, state):
