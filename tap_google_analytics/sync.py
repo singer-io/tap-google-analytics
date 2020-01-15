@@ -4,6 +4,8 @@ import json
 import singer
 from singer import Transformer
 
+LOGGER = singer.get_logger()
+
 def generate_sdc_record_hash(raw_report, row, start_date, end_date):
     """
     Generates a SHA 256 hash to be used as the primary key for records
@@ -86,29 +88,41 @@ def sync_report(client, schema, report, start_date, end_date, state):
     requesting a report per day, until the last full day of data. (e.g.,
     "Yesterday")
 
-    report = {"name": stream.tap_stream_id, "metrics": metrics, "dimensions": dimensions}
+    report = {"name": stream.tap_stream_id,
+              "profile_id": view_id,
+              "metrics": metrics,
+              "dimensions": dimensions}
     """
+    LOGGER.info("Syncing %s for view_id %s", report['name'], report['profile_id'])
     all_data_golden = True
     # TODO: Is it better to query by multiple days if `ga:date` is present?
     # - If so, we can optimize the calls here to generate date ranges and reduce request volume
     for report_date in generate_report_dates(start_date, end_date):
-        for raw_report_response in client.get_report(report['profile_id'], report_date, report['metrics'], report['dimensions']):
+        for raw_report_response in client.get_report(report['name'], report['profile_id'],
+                                                     report_date, report['metrics'],
+                                                     report['dimensions']):
 
-            with Transformer() as transformer:
-                for rec in report_to_records(raw_report_response):
-                    singer.write_record(report["name"], transformer.transform(rec, schema))
+            with singer.metrics.record_counter(report['name']) as counter:
+                time_extracted = singer.utils.now()
+                with Transformer() as transformer:
+                    for rec in report_to_records(raw_report_response):
+                        singer.write_record(report["name"],
+                                            transformer.transform(rec, schema),
+                                            time_extracted=time_extracted)
+                        counter.increment()
 
-            # NB: Bookmark all days with "golden" data until you find the first non-golden day
-            # - "golden" refers to data that will not change in future
-            #   requests, so we can use it as a bookmark
-            is_data_golden = raw_report_response["reports"][0]["data"].get("isDataGolden")
+                # NB: Bookmark all days with "golden" data until you find the first non-golden day
+                # - "golden" refers to data that will not change in future
+                #   requests, so we can use it as a bookmark
+                is_data_golden = raw_report_response["reports"][0]["data"].get("isDataGolden")
 
-            if all_data_golden:
-                singer.write_bookmark(state,
-                                      report["name"],
-                                      "last_report_date",
-                                      report_date.strftime("%Y-%m-%d"))
-                singer.write_state(state)
-                if not is_data_golden:
-                    # Stop bookmarking on first "isDataGolden": False
-                    all_data_golden = False
+                if all_data_golden:
+                    singer.write_bookmark(state,
+                                        report["name"],
+                                        "last_report_date",
+                                        report_date.strftime("%Y-%m-%d"))
+                    singer.write_state(state)
+                    if not is_data_golden:
+                        # Stop bookmarking on first "isDataGolden": False
+                        all_data_golden = False
+    LOGGER.info("Done syncing %s for view_id %s", report['name'], report['profile_id'])

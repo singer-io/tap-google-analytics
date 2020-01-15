@@ -231,9 +231,10 @@ class Client():
 
     # Sync Requests w/ Pagination and token refresh
     # Docs for more info: https://developers.google.com/analytics/devguides/reporting/core/v4/rest/v4/reports/batchGet
-    def get_report(self, profile_id, report_date, metrics, dimensions):
+    def get_report(self, name, profile_id, report_date, metrics, dimensions):
         """
         Parameters:
+        - name - the tap_stream_id of the report being run
         - profile_id - the profile for which this report is being run
         - report_date - the day to retrieve data for, as a Python datetime object, to limit report data
         - metrics - list of metrics, of the form ["ga:metric1", "ga:metric2", ...]
@@ -247,7 +248,7 @@ class Client():
         # - This will require changes to all parsing code
         while True:
             report_date_string = report_date.strftime("%Y-%m-%d")
-            LOGGER.info("Making report request for report date %s (nextPageToken: %s)", report_date_string, nextPageToken)
+            LOGGER.info("Making report request for %s (nextPageToken: %s)", report_date_string, nextPageToken)
             body = {"reportRequests":
                     [{"viewId": profile_id,
                       "dateRanges": [{"startDate": report_date_string,
@@ -256,7 +257,8 @@ class Client():
                       "dimensions": [{"name": d} for d in dimensions]}]}
             if nextPageToken:
                 body["reportRequests"][0]["pageToken"] = nextPageToken
-            report_response = self.post("https://analyticsreporting.googleapis.com/v4/reports:batchGet", body)
+            with singer.metrics.http_request_timer(name):
+                report_response = self.post("https://analyticsreporting.googleapis.com/v4/reports:batchGet", body)
             report = report_response.json()
 
             # Assoc in the request data to be used by the caller
