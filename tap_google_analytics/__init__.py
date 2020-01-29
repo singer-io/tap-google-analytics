@@ -56,11 +56,11 @@ def do_sync(client, config, catalog, state):
 
         sync_report(client, schema, report, start_date, end_date, state)
 
-def do_discover(client, profile_id):
+def do_discover(client, config):
     """
     Make request to discover.py and write result to stdout.
     """
-    catalog = discover(client, profile_id)
+    catalog = discover(client, config)
     write_catalog(catalog)
 
 def main():
@@ -84,7 +84,7 @@ def main():
         raise Exception("DEPRECATED: Use of the 'properties' parameter is not supported. Please use --catalog instead")
 
     if args.discover:
-        do_discover(client, config["view_id"])
+        do_discover(client, config)
     else:
         do_sync(client, config, catalog, state)
 
