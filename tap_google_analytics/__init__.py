@@ -7,12 +7,12 @@ from .client import Client
 from .discover import discover
 from .sync import sync_report
 
-def get_start_date(config, state, stream_name):
+def get_start_date(config, state, tap_stream_id):
     """
     Returns a date bookmark in state for the given stream, or the
     `start_date` from config, if no bookmark exists.
     """
-    return utils.strptime_to_utc(get_bookmark(state, stream_name, 'last_report_date', default=config['start_date']))
+    return utils.strptime_to_utc(get_bookmark(state, tap_stream_id, 'last_report_date', default=config['start_date']))
 
 def get_end_date(config):
     """
@@ -44,15 +44,20 @@ def do_sync(client, config, catalog, state):
                     metrics.append(field_name)
                 elif field_mdata.get('behavior') == 'DIMENSION':
                     dimensions.append(field_name)
-        report = {"profile_id": config['view_id'], "name": stream.tap_stream_id, "metrics": metrics, "dimensions": dimensions}
 
-        start_date = get_start_date(config, state, stream.tap_stream_id)
+        report = {"profile_id": config['view_id'],
+                  "name": stream.stream,
+                  "id": stream.tap_stream_id,
+                  "metrics": metrics,
+                  "dimensions": dimensions}
+
+        start_date = get_start_date(config, state, report['id'])
         end_date = get_end_date(config)
 
         schema = stream.schema.to_dict()
 
         singer.write_schema(
-            stream.tap_stream_id,
+            report['name'],
             schema,
             stream.key_properties
             )

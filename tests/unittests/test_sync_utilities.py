@@ -27,12 +27,12 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
         state = {}
         sync_report(self.client,
                     {},
-                    {"name":"test_report", "profile_id": "12345", "metrics":[], "dimensions":[]},
+                    {"id": "123", "name":"test_report", "profile_id": "12345", "metrics":[], "dimensions":[]},
                     utils.strptime_to_utc("2019-11-01"),
                     utils.strptime_to_utc("2019-11-04"),
                     state)
         # Ensure we stopped bookmarking at third day
-        self.assertEqual({'bookmarks': {'test_report': {'last_report_date': '2019-11-03'}}}, state)
+        self.assertEqual({'bookmarks': {'123': {'last_report_date': '2019-11-03'}}}, state)
         # Ensure we paginated through all 4 days, not stopping at third
         self.assertEqual(self.client.get_report.call_count, 4)
 
@@ -43,11 +43,11 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
         state = {}
         sync_report(self.client,
                     {},
-                    {"name":"test_report", "profile_id": "12345", "metrics":[], "dimensions":[]},
+                    {"id": "123", "name":"test_report", "profile_id": "12345", "metrics":[], "dimensions":[]},
                     utils.strptime_to_utc("2019-11-03"),
                     utils.strptime_to_utc("2019-11-03"),
                     state)
-        self.assertEqual({'bookmarks': {'test_report': {'last_report_date': '2019-11-03'}}}, state)
+        self.assertEqual({'bookmarks': {'123': {'last_report_date': '2019-11-03'}}}, state)
         self.assertEqual(self.client.get_report.call_count, 1)
 
 class TestRecordHashing(unittest.TestCase):

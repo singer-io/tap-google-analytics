@@ -98,6 +98,7 @@ def sync_report(client, schema, report, start_date, end_date, state):
     # TODO: Is it better to query by multiple days if `ga:date` is present?
     # - If so, we can optimize the calls here to generate date ranges and reduce request volume
     for report_date in generate_report_dates(start_date, end_date):
+<<<<<<< HEAD
         for raw_report_response in client.get_report(report['name'], report['profile_id'],
                                                      report_date, report['metrics'],
                                                      report['dimensions']):
@@ -118,9 +119,9 @@ def sync_report(client, schema, report, start_date, end_date, state):
 
                 if all_data_golden:
                     singer.write_bookmark(state,
-                                        report["name"],
-                                        "last_report_date",
-                                        report_date.strftime("%Y-%m-%d"))
+                                          report["id"],
+                                          "last_report_date",
+                                          report_date.strftime("%Y-%m-%d"))
                     singer.write_state(state)
                     if not is_data_golden:
                         # Stop bookmarking on first "isDataGolden": False
