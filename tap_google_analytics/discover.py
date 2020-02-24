@@ -298,19 +298,25 @@ def get_standard_fields(client):
     unsupported_fields = {"ga:customVarValueXX", "ga:customVarNameXX", "ga:calcMetric_<NAME>"}
     return [transform_field(f) for f in metadata_response["items"] if f["id"] not in unsupported_fields]
 
-def generate_catalog(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
-    schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
-    # Do the thing to generate the thing
-    catalog_entry = CatalogEntry(schema=Schema.from_dict(schema),
-                                 key_properties=['_sdc_record_hash'],
-                                 stream='report',
-                                 tap_stream_id='report',
-                                 metadata=metadata.to_list(mdata))
-    return Catalog([catalog_entry])
+def generate_catalog(client, report_config, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
+    """
+    Generate a catalog entry for each report specified in `report_config`
+    """
+    catalog_entries = []
+    for report in report_config:
+        schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
+        # Do the thing to generate the thing
+        catalog_entries.append(CatalogEntry(schema=Schema.from_dict(schema),
+                                            key_properties=['_sdc_record_hash'],
+                                            stream=report['name'],
+                                            tap_stream_id=report['id'],
+                                            metadata=metadata.to_list(mdata)))
+    return Catalog(catalog_entries)
 
-def discover(client, profile_id):
+def discover(client, config, profile_id):
     # Draw from spike to discover all the things
     # Get field_infos (standard and custom)
+    report_config = config.get("report_definitions") or [{"name": "report", "id": "report"}]
     LOGGER.info("Discovering standard fields...")
     standard_fields = get_standard_fields(client)
     LOGGER.info("Discovering custom fields...")
@@ -318,4 +324,4 @@ def discover(client, profile_id):
     LOGGER.info("Parsing cube definitions...")
     all_cubes, cubes_lookup = parse_cube_definitions(client)
     LOGGER.info("Generating catalog...")
-    return generate_catalog(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
+    return generate_catalog(client, report_config, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
