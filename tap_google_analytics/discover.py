@@ -1,8 +1,7 @@
+import re
 from functools import reduce
 import singer
 from singer import metadata, Schema, CatalogEntry, Catalog
-import json
-import re
 
 
 LOGGER = singer.get_logger()
@@ -42,6 +41,7 @@ float_field_overrides = {'ga:latitude',
                          'ga:timeOnPage',
                          'ga:timeOnScreen'}
 
+# pylint: disable=too-many-return-statements
 def type_to_schema(ga_type, field_id):
     if field_id in datetime_field_overrides:
         return {"type": ["string", "null"], "format": "date-time"}
@@ -107,11 +107,11 @@ def handle_static_XX_field(field, cubes_lookup):
     """
     regex_matcher = field['id'].replace("XX", r'\d\d?')
     matching_cubes = {field_id: cubes_lookup[field_id]
-                           for field_id in cubes_lookup.keys()
-                           if re.match(regex_matcher, field_id)}
+                      for field_id in cubes_lookup.keys()
+                      if re.match(regex_matcher, field_id)}
 
     sub_schemas = {field_id: type_to_schema(field["dataType"], field["id"])
-                     for field_id in matching_cubes.keys()}
+                   for field_id in matching_cubes.keys()}
     sub_metadata = matching_cubes
 
     return sub_schemas, sub_metadata
@@ -170,7 +170,7 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
                                                "start_date": {"type": "string",
                                                               "format": "date-time"},
                                                "end_date": {"type": "string",
-                                                              "format": "date-time"},
+                                                            "format": "date-time"},
                                                "account_id": {"type": "string"},
                                                "web_property_id": {"type": "string"},
                                                "profile_id": {"type": "string"}}}
@@ -187,9 +187,8 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
 
     for standard_field in standard_fields:
         if (standard_field['status'] == 'DEPRECATED'
-            or standard_field['id'] in ["ga:metricXX", "ga:dimensionXX"]):
+                or standard_field['id'] in ["ga:metricXX", "ga:dimensionXX"]):
             continue
-        matching_fields = []
         if is_static_XX_field(standard_field["id"], cubes_lookup):
             sub_schemas, sub_mdata = handle_static_XX_field(standard_field, cubes_lookup)
             schema["properties"].update(sub_schemas)
@@ -204,7 +203,7 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
                 mdata = write_metadata(mdata, specific_field, cubes)
         else:
             schema["properties"][standard_field["id"]] = type_to_schema(standard_field["dataType"],
-                                                                                 standard_field["id"])
+                                                                        standard_field["id"])
             mdata = write_metadata(mdata, standard_field, cubes_lookup[standard_field["id"]])
 
     for custom_field in custom_fields:
@@ -219,7 +218,7 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
 
         mdata = write_metadata(mdata, custom_field, cubes)
         schema["properties"][custom_field["id"]] = type_to_schema(custom_field["dataType"],
-                                                                          custom_field["id"])
+                                                                  custom_field["id"])
 
     return schema, mdata
 
@@ -231,7 +230,8 @@ def generate_cubes_lookup(raw_cubes):
     cubes_lookup = {}
     for raw_cube, fields in raw_cubes.items():
         for field in fields:
-            if field not in cubes_lookup: cubes_lookup[field] = set()
+            if field not in cubes_lookup:
+                cubes_lookup[field] = set()
             cubes_lookup[field].add(raw_cube)
     return cubes_lookup
 

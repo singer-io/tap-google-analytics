@@ -1,10 +1,11 @@
+from datetime import timedelta
+
 import singer
 from singer import utils, get_bookmark, metadata
 from singer.catalog import write_catalog, Catalog
 from .client import Client
 from .discover import discover
 from .sync import sync_report
-from datetime import timedelta
 
 def get_start_date(config, state, stream_name):
     """
@@ -20,7 +21,8 @@ def get_end_date(config):
 
     This can be overridden by the `end_date` config.json value.
     """
-    if 'end_date' in config: return utils.strptime_to_utc(config['end_date'])
+    if 'end_date' in config:
+        return utils.strptime_to_utc(config['end_date'])
     return (utils.now() - timedelta(1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
 def do_sync(client, config, catalog, state):
@@ -34,7 +36,8 @@ def do_sync(client, config, catalog, state):
         dimensions = []
         mdata = metadata.to_map(stream.metadata)
         for field_path, field_mdata in mdata.items():
-            if field_path == tuple(): continue
+            if field_path == tuple():
+                continue
             _, field_name = field_path
             if field_mdata.get('inclusion') == 'automatic' or field_mdata.get('selected'):
                 if field_mdata.get('behavior') == 'METRIC':
