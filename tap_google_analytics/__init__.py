@@ -1,17 +1,18 @@
+from datetime import timedelta
+
 import singer
 from singer import utils, get_bookmark, metadata
 from singer.catalog import write_catalog, Catalog
 from .client import Client
 from .discover import discover
 from .sync import sync_report
-from datetime import timedelta
 
-def get_start_date(config, state, stream_name):
+def get_start_date(config, state, tap_stream_id):
     """
     Returns a date bookmark in state for the given stream, or the
     `start_date` from config, if no bookmark exists.
     """
-    return utils.strptime_to_utc(get_bookmark(state, stream_name, 'last_report_date', default=config['start_date']))
+    return utils.strptime_to_utc(get_bookmark(state, tap_stream_id, 'last_report_date', default=config['start_date']))
 
 def get_end_date(config):
     """
@@ -20,7 +21,8 @@ def get_end_date(config):
 
     This can be overridden by the `end_date` config.json value.
     """
-    if 'end_date' in config: return utils.strptime_to_utc(config['end_date'])
+    if 'end_date' in config:
+        return utils.strptime_to_utc(config['end_date'])
     return (utils.now() - timedelta(1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
 def do_sync(client, config, catalog, state):
@@ -34,33 +36,39 @@ def do_sync(client, config, catalog, state):
         dimensions = []
         mdata = metadata.to_map(stream.metadata)
         for field_path, field_mdata in mdata.items():
-            if field_path == tuple(): continue
+            if field_path == tuple():
+                continue
             _, field_name = field_path
             if field_mdata.get('inclusion') == 'automatic' or field_mdata.get('selected'):
                 if field_mdata.get('behavior') == 'METRIC':
                     metrics.append(field_name)
                 elif field_mdata.get('behavior') == 'DIMENSION':
                     dimensions.append(field_name)
-        report = {"profile_id": config['view_id'], "name": stream.tap_stream_id, "metrics": metrics, "dimensions": dimensions}
 
-        start_date = get_start_date(config, state, stream.tap_stream_id)
+        report = {"profile_id": config['view_id'],
+                  "name": stream.stream,
+                  "id": stream.tap_stream_id,
+                  "metrics": metrics,
+                  "dimensions": dimensions}
+
+        start_date = get_start_date(config, state, report['id'])
         end_date = get_end_date(config)
 
         schema = stream.schema.to_dict()
 
         singer.write_schema(
-            stream.tap_stream_id,
+            report['name'],
             schema,
             stream.key_properties
             )
 
         sync_report(client, schema, report, start_date, end_date, state)
 
-def do_discover(client, profile_id):
+def do_discover(client, config):
     """
     Make request to discover.py and write result to stdout.
     """
-    catalog = discover(client, profile_id)
+    catalog = discover(client, config, config['view_id'])
     write_catalog(catalog)
 
 def main():
@@ -84,7 +92,7 @@ def main():
         raise Exception("DEPRECATED: Use of the 'properties' parameter is not supported. Please use --catalog instead")
 
     if args.discover:
-        do_discover(client, config["view_id"])
+        do_discover(client, config)
     else:
         do_sync(client, config, catalog, state)
 
