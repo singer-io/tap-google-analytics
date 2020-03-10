@@ -20,6 +20,15 @@ def should_giveup(e):
             LOGGER.info("Encountered 429, backing off exponentially. Details: %s", error_message)
     return not e.response.status_code == 429
 
+def _is_json(response):
+    try:
+        response.json()
+        return True
+    except Exception:
+        return False
+
+
+# pylint: disable=too-many-instance-attributes
 class Client():
     def __init__(self, config):
         self.auth_method = config['auth_method']
@@ -94,12 +103,6 @@ class Client():
         self.__access_token = token_json['access_token']
         self.expires_in = token_json['expires_in']
 
-    def _is_json(self, response):
-        try:
-            response.json()
-            return True
-        except:
-            return False
 
     @backoff.on_exception(backoff.expo,
                           (requests.exceptions.RequestException),
@@ -122,7 +125,7 @@ class Client():
         else:
             response = self.session.request(method, url, headers=headers, params=params)
 
-        error_message = self._is_json(response) and response.json().get("error", {}).get("message")
+        error_message = _is_json(response) and response.json().get("error", {}).get("message")
         if response.status_code == 400 and error_message:
             raise Exception("400 Client Error: Bad Request, details: {}".format(error_message))
 
@@ -148,7 +151,7 @@ class Client():
             cubes_response.raise_for_status()
             cubes_json = cubes_response.json()
         except Exception as ex:
-            LOGGER.warn("Error fetching raw cubes, falling back to local copy. Exception message: %s", ex)
+            LOGGER.warning("Error fetching raw cubes, falling back to local copy. Exception message: %s", ex)
             local_cubes_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ga_cubes.json")
             with open(local_cubes_path, "r") as f:
                 cubes_json = json.load(f)
@@ -172,7 +175,7 @@ class Client():
         """
         profiles_url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/profiles'
         profiles_response = self.get(profiles_url.format(accountId=account_id,
-                                                             webPropertyId=web_property_id))
+                                                         webPropertyId=web_property_id))
         return [p["id"] for p in profiles_response.json()['items']]
 
     def get_goals_for_profile(self, profile_id):
@@ -189,8 +192,8 @@ class Client():
         """
         profiles_url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals'
         goals_response = self.get(profiles_url.format(accountId=account_id,
-                                                          webPropertyId=web_property_id,
-                                                          profileId=profile_id))
+                                                      webPropertyId=web_property_id,
+                                                      profileId=profile_id))
         return [g["id"] for g in goals_response.json()['items']]
 
     def get_custom_metrics_for_profile(self, profile_id):
@@ -208,7 +211,7 @@ class Client():
         metrics_url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics'
 
         custom_metrics_response = self.get(metrics_url.format(accountId=account_id,
-                                                                  webPropertyId=web_property_id))
+                                                              webPropertyId=web_property_id))
         return custom_metrics_response.json()
 
     def get_custom_dimensions_for_profile(self, profile_id):
@@ -224,16 +227,17 @@ class Client():
         """
         url = 'https://www.googleapis.com/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions'
         custom_dimensions_response = self.get(url.format(accountId=account_id,
-                                                             webPropertyId=web_property_id))
-        profiles = self.get_profiles_for_property(account_id, web_property_id)
+                                                         webPropertyId=web_property_id))
+
         # NOTE: Assuming that all custom dimensions are STRING, since there's no type information
         return custom_dimensions_response.json()
 
     # Sync Requests w/ Pagination and token refresh
     # Docs for more info: https://developers.google.com/analytics/devguides/reporting/core/v4/rest/v4/reports/batchGet
-    def get_report(self, profile_id, report_date, metrics, dimensions):
+    def get_report(self, name, profile_id, report_date, metrics, dimensions):
         """
         Parameters:
+        - name - the tap_stream_id of the report being run
         - profile_id - the profile for which this report is being run
         - report_date - the day to retrieve data for, as a Python datetime object, to limit report data
         - metrics - list of metrics, of the form ["ga:metric1", "ga:metric2", ...]
@@ -247,7 +251,7 @@ class Client():
         # - This will require changes to all parsing code
         while True:
             report_date_string = report_date.strftime("%Y-%m-%d")
-            LOGGER.info("Making report request for report date %s (nextPageToken: %s)", report_date_string, nextPageToken)
+            LOGGER.info("Making report request for %s (nextPageToken: %s)", report_date_string, nextPageToken)
             body = {"reportRequests":
                     [{"viewId": profile_id,
                       "dateRanges": [{"startDate": report_date_string,
@@ -256,7 +260,8 @@ class Client():
                       "dimensions": [{"name": d} for d in dimensions]}]}
             if nextPageToken:
                 body["reportRequests"][0]["pageToken"] = nextPageToken
-            report_response = self.post("https://analyticsreporting.googleapis.com/v4/reports:batchGet", body)
+            with singer.metrics.http_request_timer(name):
+                report_response = self.post("https://analyticsreporting.googleapis.com/v4/reports:batchGet", body)
             report = report_response.json()
 
             # Assoc in the request data to be used by the caller

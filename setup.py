@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="tap-google-analytics",
-    version="0.1.1",
+    version="0.2.0",
     description="Singer.io tap for extracting data",
     author="Stitch",
     url="http://singer.io",
@@ -18,8 +18,7 @@ setup(
     extras_require={
         'dev': [
             'ipdb==0.11',
-            'pylint==2.1.1',
-            'astroid==2.1.0',
+            'pylint',
             'nose'
         ]
     },
