@@ -321,5 +321,5 @@ def discover(client, config):
     all_cubes, cubes_lookup = parse_cube_definitions(client)
     LOGGER.info("Generating catalog...")
     schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
-    report_names = json.loads(config['report_names'])
+    report_names = json.loads(config.get('report_names', '["report"]'))
     return generate_catalog(schema, mdata, report_names)
