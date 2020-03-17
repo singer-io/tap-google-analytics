@@ -21,7 +21,7 @@ jobs:
           name: 'Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
-            nosetests tests
+            nosetests tests/unittests/
       # - add_ssh_keys
       # - run:
       #     name: 'Integration Tests'
