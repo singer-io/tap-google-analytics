@@ -12,7 +12,7 @@ reports = {
     utils.strptime_to_utc("2019-11-04"): [{"reports": [{"data": {"isDataGolden": True}}]}],
 }
 
-def get_mock_report(profile_id, report_date, metrics, dimensions):
+def get_mock_report(name, profile_id, report_date, metrics, dimensions):
     return reports[report_date]
 
 class TestIsDataGoldenBookmarking(unittest.TestCase):
