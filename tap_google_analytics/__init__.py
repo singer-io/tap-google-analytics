@@ -7,6 +7,8 @@ from .client import Client
 from .discover import discover
 from .sync import sync_report
 
+LOGGER = singer.get_logger()
+
 def get_start_date(config, state, tap_stream_id):
     """
     Returns a date bookmark in state for the given stream, or the
@@ -71,6 +73,7 @@ def do_discover(client, config):
     catalog = discover(client, config, config['view_id'])
     write_catalog(catalog)
 
+@utils.handle_top_exception(LOGGER)
 def main():
     required_config_keys = ['start_date', 'view_id']
     args = singer.parse_args(required_config_keys)
