@@ -55,6 +55,13 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
     def expected_pks(self):
         return {
             "report 1" : {"_sdc_record_hash"},
+            'Audience Overview': {"_sdc_record_hash"},
+            'Audience Technology': {"_sdc_record_hash"},
+            'Acquisition Overview': {"_sdc_record_hash"},
+            'Ecommerce Overview': {"_sdc_record_hash"},
+            'Audience Geo Location': {"_sdc_record_hash"},
+            'Behavior Overview': {"_sdc_record_hash"},
+
         }
 
     def expected_automatic_fields(self):
