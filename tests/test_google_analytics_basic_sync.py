@@ -29,11 +29,23 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
 
     def expected_check_streams(self):
         return {
+            'Audience Overview',
+            'Audience Technology',
+            'Acquisition Overview',
+            'Ecommerce Overview',
+            'Audience Geo Location',
+            'Behavior Overview',
             'a665732c-d18b-445c-89b2-5ca8928a7305'
         }
 
     def expected_sync_streams(self):
         return {
+            'Audience Overview',
+            'Audience Technology',
+            'Acquisition Overview',
+            'Ecommerce Overview',
+            'Audience Geo Location',
+            'Behavior Overview',
             "report 1"
         }
 
