@@ -168,13 +168,13 @@ def write_metadata(mdata, field, cubes):
 
 def generate_base_schema():
     return {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"},
-                                               "start_date": {"type": "string",
-                                                              "format": "date-time"},
-                                               "end_date": {"type": "string",
+                                             "start_date": {"type": "string",
                                                             "format": "date-time"},
-                                               "account_id": {"type": "string"},
-                                               "web_property_id": {"type": "string"},
-                                               "profile_id": {"type": "string"}}}
+                                             "end_date": {"type": "string",
+                                                          "format": "date-time"},
+                                             "account_id": {"type": "string"},
+                                             "web_property_id": {"type": "string"},
+                                             "profile_id": {"type": "string"}}}
 
 def generate_base_metadata(all_cubes, schema):
     mdata = metadata.get_standard_metadata(schema=schema, key_properties=["_sdc_record_hash"])
