@@ -327,13 +327,16 @@ def generate_catalog(client, report_config, standard_fields, custom_fields, all_
     catalog_entries = []
     for report in PREMADE_REPORTS:
         metrics_dimensions = set(report['metrics'] + report['dimensions'])
-        selected_by_default = {...report['metrics'][:10], 'ga:date'} # Use first 10 metrics in definition
+        selected_by_default = {*report['metrics'][:10], # Use first 10 metrics in definition
+                               *report.get('default_dimensions', [])}
         premade_fields = [field for field in standard_fields if field['id'] in metrics_dimensions]
         schema, mdata = generate_premade_catalog_entry(premade_fields,
                                                        all_cubes,
                                                        cubes_lookup)
 
-        mdata = reduce(lambda mdata, field_name: metadata.write(mdata, ("properties", field_name), "selected-by-default", True),
+        mdata = reduce(lambda mdata, field_name: metadata.write(mdata,
+                                                                ("properties", field_name),
+                                                                "selected-by-default", True),
                        selected_by_default,
                        mdata)
 

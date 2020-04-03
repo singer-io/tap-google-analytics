@@ -22,8 +22,10 @@ PREMADE_REPORTS = [
             "ga:year",
             "ga:month",
             "ga:hour",
-            "ga:minute"
         ],
+        "default_dimensions": [
+            "ga:date"
+        ]
     },
     {
         "name": "Audience Geo Location",
@@ -40,7 +42,13 @@ PREMADE_REPORTS = [
             "ga:year",
             "ga:month",
             "ga:hour",
-            "ga:minute",
+            "ga:country",
+            "ga:city",
+            "ga:continent",
+            "ga:subContinent"
+        ],
+        "default_dimensions": [
+            "ga:date",
             "ga:country",
             "ga:city",
             "ga:continent",
@@ -62,7 +70,6 @@ PREMADE_REPORTS = [
             "ga:year",
             "ga:month",
             "ga:hour",
-            "ga:minute",
             "ga:browser",
             "ga:operatingSystem",
             "ga:screenResolution",
@@ -71,6 +78,11 @@ PREMADE_REPORTS = [
             "ga:javaEnabled",
             "ga:hostname"
         ],
+        "default_dimensions": [
+            "ga:date",
+            "ga:browser",
+            "ga:operatingSystem",
+        ]
     },
     {
         "name": "Acquisition Overview",
@@ -83,17 +95,23 @@ PREMADE_REPORTS = [
             "ga:bounceRate"
         ],
         "dimensions": [
-            "ga:acquisitionTrafficChannel",
             "ga:channelGrouping",
-            "ga:acquisitionSource", # Had ga:source
-            "ga:acquisitionSourceMedium", # Had ga:sourceMedium
-            "ga:acquisitionMedium", # Had ga:medium
+            "ga:acquisitionTrafficChannel",
+            "ga:acquisitionSource",
+            "ga:acquisitionSourceMedium",
+            "ga:acquisitionMedium",
             "ga:date",
             "ga:year",
             "ga:month",
             "ga:hour",
-            "ga:minute",
         ],
+        "default_dimensions": [
+            "ga:date",
+            "ga:acquisitionTrafficChannel",
+            "ga:acquisitionSource",
+            "ga:acquisitionSourceMedium",
+            "ga:acquisitionMedium",
+        ]
     },
     {
         "name": "Behavior Overview",
@@ -110,15 +128,20 @@ PREMADE_REPORTS = [
             "ga:year",
             "ga:month",
             "ga:hour",
-            "ga:minute", # TODO: Not a thing?
             "ga:pagePath",
             "ga:pageTitle",
             "ga:searchKeyword",
             "ga:eventCategory"
         ],
+        "default_dimensions": [
+            "ga:date",
+            "ga:pagePath",
+            "ga:pageTitle",
+            "ga:searchKeyword"
+        ]
     },
     {
-        "name": "eCommerce", #TODO: Name me
+        "name": "Ecommerce Overview",
         "metrics": ["ga:transactions"],
         "dimensions": [
             "ga:transactionId",
@@ -128,5 +151,13 @@ PREMADE_REPORTS = [
             "ga:keyword",
             "ga:socialNetwork"
         ],
-    },
+        "default_dimensions": [
+            "ga:transactionId",
+            "ga:campaign",
+            "ga:source",
+            "ga:medium",
+            "ga:keyword",
+            "ga:socialNetwork"
+        ]
+    }
 ]
