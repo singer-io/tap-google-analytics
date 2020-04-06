@@ -101,7 +101,6 @@ PREMADE_REPORTS = [
             'ga:acquisitionTrafficChannel'
         ],
         "default_dimensions": [
-            "ga:date",
             "ga:acquisitionTrafficChannel",
             "ga:acquisitionSource",
             "ga:acquisitionSourceMedium",
