@@ -87,8 +87,6 @@ PREMADE_REPORTS = [
     {
         "name": "Acquisition Overview",
         "metrics": [
-            "ga:users",
-            "ga:newUsers",
             "ga:sessions",
             "ga:pageviewsPerSession",
             "ga:avgSessionDuration",

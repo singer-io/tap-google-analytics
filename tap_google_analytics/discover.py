@@ -365,7 +365,7 @@ def generate_catalog(client, report_config, standard_fields, custom_fields, all_
 def discover(client, config, profile_id):
     # Draw from spike to discover all the things
     # Get field_infos (standard and custom)
-    report_config = config.get("report_definitions") or [{"name": "report", "id": "report"}]
+    report_config = config.get("report_definitions") or []
     LOGGER.info("Discovering standard fields...")
     standard_fields = get_standard_fields(client)
     LOGGER.info("Discovering custom fields...")
