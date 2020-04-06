@@ -95,15 +95,10 @@ PREMADE_REPORTS = [
             "ga:bounceRate"
         ],
         "dimensions": [
-            "ga:channelGrouping",
-            "ga:acquisitionTrafficChannel",
-            "ga:acquisitionSource",
-            "ga:acquisitionSourceMedium",
-            "ga:acquisitionMedium",
-            "ga:date",
-            "ga:year",
-            "ga:month",
-            "ga:hour",
+            'ga:acquisitionMedium',
+            'ga:acquisitionSource',
+            'ga:acquisitionSourceMedium',
+            'ga:acquisitionTrafficChannel'
         ],
         "default_dimensions": [
             "ga:date",

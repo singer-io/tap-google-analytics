@@ -32,7 +32,7 @@ dimensions = ['ga:acquisitionSource',
               'ga:acquisitionMedium',
               'ga:acquisitionTrafficChannel',
               'ga:date']
-profile_id = '123456789'
+profile_id = config['view_id']
 report_date = datetime.datetime(2019,2,26)
 
 # 3. Attempt all combinations (order-indepedent) of metrics and dimensions, saving successes in file_name
@@ -69,3 +69,6 @@ with open(file_name, "r") as f:
     for line in f:
         winners.append(json.loads(line))
 pprint(sorted(winners, key=lambda w: tuple([len(w['dimensions']), len(w['metrics'])]), reverse=True)[0])
+
+import ipdb; ipdb.set_trace()
+1+1
