@@ -2,6 +2,7 @@ import itertools
 import json
 import datetime
 
+from pprint import pprint
 from singer import get_logger
 
 from tap_google_analytics.client import Client
@@ -60,3 +61,11 @@ def test_report_combinations(client, metrics, dimensions, profile_id, report_dat
             pass
 
 test_report_combinations(client, metrics, dimensions, profile_id, report_date, file_name)
+
+# 4. For finding the longest valid combination, with dimensions taking precedence, this works:
+# Printing the winner on STD_OUT for piping
+winners = []
+with open(file_name, "r") as f:
+    for line in f:
+        winners.append(json.loads(line))
+pprint(sorted(winners, key=lambda w: tuple([len(w['dimensions']), len(w['metrics'])]), reverse=True)[0])
