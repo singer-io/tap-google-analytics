@@ -3,6 +3,7 @@ from functools import reduce
 import singer
 from singer import metadata, Schema, CatalogEntry, Catalog
 
+from tap_google_analytics.reports import PREMADE_REPORTS
 
 LOGGER = singer.get_logger()
 
@@ -165,15 +166,17 @@ def write_metadata(mdata, field, cubes):
 
     return mdata
 
-def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
-    schema = {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"},
-                                               "start_date": {"type": "string",
-                                                              "format": "date-time"},
-                                               "end_date": {"type": "string",
+def generate_base_schema():
+    return {"type": "object", "properties": {"_sdc_record_hash": {"type": "string"},
+                                             "start_date": {"type": "string",
                                                             "format": "date-time"},
-                                               "account_id": {"type": "string"},
-                                               "web_property_id": {"type": "string"},
-                                               "profile_id": {"type": "string"}}}
+                                             "end_date": {"type": "string",
+                                                          "format": "date-time"},
+                                             "account_id": {"type": "string"},
+                                             "web_property_id": {"type": "string"},
+                                             "profile_id": {"type": "string"}}}
+
+def generate_base_metadata(all_cubes, schema):
     mdata = metadata.get_standard_metadata(schema=schema, key_properties=["_sdc_record_hash"])
     mdata = metadata.to_map(mdata)
     mdata = metadata.write(mdata, (), "tap_google_analytics.all_cubes", list(all_cubes))
@@ -183,7 +186,11 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
     mdata = reduce(lambda mdata, field_name: metadata.write(mdata, ("properties", field_name), "tap_google_analytics.group", "Report Fields"),
                    ["_sdc_record_hash", "start_date", "end_date", "account_id", "web_property_id", "profile_id"],
                    mdata)
+    return mdata
 
+def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
+    schema = generate_base_schema()
+    mdata = generate_base_metadata(all_cubes, schema)
 
     for standard_field in standard_fields:
         if (standard_field['status'] == 'DEPRECATED'
@@ -220,6 +227,21 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
         schema["properties"][custom_field["id"]] = type_to_schema(custom_field["dataType"],
                                                                   custom_field["id"])
 
+    return schema, mdata
+
+def generate_premade_catalog_entry(standard_fields, all_cubes, cubes_lookup):
+    schema = generate_base_schema()
+    mdata = generate_base_metadata(all_cubes, schema)
+
+    for standard_field in standard_fields:
+        # No dynamic fields in standard reports
+        if (standard_field['status'] == 'DEPRECATED'
+                or standard_field['id'] in ["ga:metricXX", "ga:dimensionXX"]):
+            continue
+
+        schema["properties"][standard_field["id"]] = type_to_schema(standard_field["dataType"],
+                                                                    standard_field["id"])
+        mdata = write_metadata(mdata, standard_field, cubes_lookup[standard_field["id"]])
     return schema, mdata
 
 def generate_cubes_lookup(raw_cubes):
@@ -303,9 +325,36 @@ def generate_catalog(client, report_config, standard_fields, custom_fields, all_
     Generate a catalog entry for each report specified in `report_config`
     """
     catalog_entries = []
+    for report in PREMADE_REPORTS:
+        metrics_dimensions = set(report['metrics'] + report['dimensions'])
+        selected_by_default = {*report['metrics'][:10], # Use first 10 metrics in definition
+                               *report.get('default_dimensions', [])}
+        premade_fields = [field for field in standard_fields if field['id'] in metrics_dimensions]
+        schema, mdata = generate_premade_catalog_entry(premade_fields,
+                                                       all_cubes,
+                                                       cubes_lookup)
+
+        mdata = reduce(lambda mdata, field_name: metadata.write(mdata,
+                                                                ("properties", field_name),
+                                                                "selected-by-default", True),
+                       selected_by_default,
+                       mdata)
+
+        catalog_entries.append(CatalogEntry(schema=Schema.from_dict(schema),
+                                            key_properties=['_sdc_record_hash'],
+                                            stream=report['name'],
+                                            tap_stream_id=report['name'],
+                                            metadata=metadata.to_list(mdata)))
+
+
     for report in report_config:
-        schema, mdata = generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
-        # Do the thing to generate the thing
+        schema, mdata = generate_catalog_entry(client,
+                                               standard_fields,
+                                               custom_fields,
+                                               all_cubes,
+                                               cubes_lookup,
+                                               profile_id)
+
         catalog_entries.append(CatalogEntry(schema=Schema.from_dict(schema),
                                             key_properties=['_sdc_record_hash'],
                                             stream=report['name'],
@@ -316,7 +365,7 @@ def generate_catalog(client, report_config, standard_fields, custom_fields, all_
 def discover(client, config, profile_id):
     # Draw from spike to discover all the things
     # Get field_infos (standard and custom)
-    report_config = config.get("report_definitions") or [{"name": "report", "id": "report"}]
+    report_config = config.get("report_definitions") or []
     LOGGER.info("Discovering standard fields...")
     standard_fields = get_standard_fields(client)
     LOGGER.info("Discovering custom fields...")

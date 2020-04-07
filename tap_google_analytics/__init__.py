@@ -19,13 +19,13 @@ def get_start_date(config, state, tap_stream_id):
 def get_end_date(config):
     """
     Returns the end_date for the reporting sync. Under normal operation,
-    this is defined as the last full day to occur before UTC now.
+    this is defined as that date portion of UTC now.
 
     This can be overridden by the `end_date` config.json value.
     """
     if 'end_date' in config:
         return utils.strptime_to_utc(config['end_date'])
-    return (utils.now() - timedelta(1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return utils.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
 def do_sync(client, config, catalog, state):
     """
@@ -41,7 +41,9 @@ def do_sync(client, config, catalog, state):
             if field_path == tuple():
                 continue
             _, field_name = field_path
-            if field_mdata.get('inclusion') == 'automatic' or field_mdata.get('selected'):
+            if field_mdata.get('inclusion') == 'automatic' or \
+               field_mdata.get('selected') or \
+               (field_mdata.get('selected-by-default') and field_mdata.get('selected') is None):
                 if field_mdata.get('behavior') == 'METRIC':
                     metrics.append(field_name)
                 elif field_mdata.get('behavior') == 'DIMENSION':
