@@ -23,12 +23,12 @@ def generate_sdc_record_hash(raw_report, row, start_date, end_date):
     REQUIRE a major version bump! As it will invalidate all previous
     primary keys and cause new data to be appended.
     """
-    dimensions_headers = raw_report["reports"][0]["columnHeader"]["dimensions"]
+    dimensions_headers = raw_report["reports"][0]["columnHeader"].get("dimensions", [])
     profile_id = raw_report["profileId"]
     web_property_id = raw_report["webPropertyId"]
     account_id = raw_report["accountId"]
 
-    dimensions_pairs = sorted(zip(dimensions_headers, row["dimensions"]), key=lambda x: x[0])
+    dimensions_pairs = sorted(zip(dimensions_headers, row.get("dimensions", [])), key=lambda x: x[0])
 
     # NB: Do not change the ordering of this list, it is the source of the PK hash
     hash_source_data = [account_id,
@@ -61,11 +61,11 @@ def report_to_records(raw_report):
     report = raw_report["reports"][0]
     column_headers = report["columnHeader"]
     metrics_headers = [mh["name"] for mh in column_headers["metricHeader"]["metricHeaderEntries"]]
-    dimensions_headers = column_headers["dimensions"]
+    dimensions_headers = column_headers.get("dimensions", [])
 
     for row in report.get("data", {}).get("rows", []):
         record = {}
-        record.update(zip(dimensions_headers, row["dimensions"]))
+        record.update(zip(dimensions_headers, row.get("dimensions", [])))
         record.update(zip(metrics_headers, row["metrics"][0]["values"]))
 
         report_date = raw_report["reportDate"]
