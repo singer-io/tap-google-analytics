@@ -61,7 +61,6 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
             'Ecommerce Overview': {"_sdc_record_hash"},
             'Audience Geo Location': {"_sdc_record_hash"},
             'Behavior Overview': {"_sdc_record_hash"},
-
         }
 
     def expected_automatic_fields(self):
@@ -71,6 +70,17 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
 
         return return_value
 
+    def expected_default_fields(self):
+        return {
+            "report 1" : {},
+            "Audience Overview": {"ga:users","ga:newUsers","ga:sessions","ga:sessionsPerUser","ga:pageviews","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date"},
+            "Audience Geo Location": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date","ga:country","ga:city","ga:continent","ga:subContinent"},
+            "Audience Technology": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date","ga:browser","ga:operatingSystem"},
+            "Acquisition Overview": {"ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:acquisitionTrafficChannel","ga:acquisitionSource","ga:acquisitionSourceMedium","ga:acquisitionMedium"},
+            "Behavior Overview": {"ga:pageviews","ga:uniquePageviews","ga:avgTimeOnPage","ga:bounceRate","ga:exitRate","ga:exits","ga:date","ga:pagePath","ga:pageTitle","ga:searchKeyword"},
+            "Ecommerce Overview": {"ga:transactions","ga:transactionId","ga:campaign","ga:source","ga:medium","ga:keyword","ga:socialNetwork"}
+        }
+
     def get_properties(self):
         return {
             'start_date' : '2020-03-01T00:00:00Z',
@@ -79,11 +89,7 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
         }
 
     def get_field_selection(self):
-        return {
-            "ga:adClicks",
-            "ga:hour",
-            "ga:adCost",
-        }
+        return set()
 
     def test_run(self):
         conn_id = connections.ensure_connection(self)
@@ -116,10 +122,9 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
 
             keys = set(catalog_entry['annotated-schema']['properties'].keys())
             non_selected_fields = keys - self.get_field_selection()
-            connections.select_catalog_and_fields_via_metadata(conn_id,
-                                                               c,
-                                                               catalog_entry,
-                                                               non_selected_fields = non_selected_fields)
+            connections.select_catalog_via_metadata(conn_id,
+                                                    c,
+                                                    catalog_entry)
 
         # clear state
         menagerie.set_state(conn_id, {})
@@ -141,6 +146,5 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
         for stream_name, data in synced_records.items():
             record_messages = [set(row['data'].keys()) for row in data['messages']]
             for record_keys in record_messages:
-                # The symmetric difference should be empty
                 self.assertEqual(record_keys, (self.expected_automatic_fields().get(stream_name, set()) |
-                                               self.get_field_selection()))
+                                               set(self.expected_default_fields()[stream_name])))
