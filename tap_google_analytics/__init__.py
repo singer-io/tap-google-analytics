@@ -11,13 +11,13 @@ from .sync import sync_report
 LOGGER = singer.get_logger()
 
 
-# TODO: Unit test this
+# TODO: Add an integration test with multiple profiles that asserts state
 def clean_state_for_report(config, state, tap_stream_id):
-    top_level_bookmark = utils.strptime_to_utc(get_bookmark(state,
-                                                            tap_stream_id,
-                                                            'last_report_date',
-                                                            default=config['start_date']))
+    top_level_bookmark = get_bookmark(state,
+                                      tap_stream_id,
+                                      'last_report_date')
     if top_level_bookmark:
+        top_level_bookmark = utils.strptime_to_utc(top_level_bookmark)
         LOGGER.info("%s - Converting state to multi-profile format.", tap_stream_id)
         view_ids = get_view_ids(config)
         for view_id in view_ids:
