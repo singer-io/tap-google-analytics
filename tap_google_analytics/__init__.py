@@ -24,7 +24,7 @@ def clean_state_for_report(config, state, tap_stream_id):
             state = singer.write_bookmark(state,
                                           tap_stream_id,
                                           view_id,
-                                          {'last_report_date': report_date.strftime("%Y-%m-%d")})
+                                          {'last_report_date': top_level_bookmark.strftime("%Y-%m-%d")})
         state = singer.clear_bookmark(state, tap_stream_id, 'last_report_date')
         singer.write_state(state)
     return state
@@ -102,7 +102,7 @@ def do_sync(client, config, catalog, state):
         schema = stream.schema.to_dict()
 
         singer.write_schema(
-            report['name'],
+            stream.stream,
             schema,
             stream.key_properties
             )
@@ -133,7 +133,7 @@ def validate_config_view_ids(config):
 def main():
     required_config_keys = ['start_date']
     args = singer.parse_args(required_config_keys)
-    validate_config_view_ids(args.config):
+    validate_config_view_ids(args.config)
     if "refresh_token" in args.config:  # if refresh_token in config assume OAuth2 credentials
         args.config['auth_method'] = "oauth2"
         additional_config_keys = ['client_id', 'client_secret', 'refresh_token']
