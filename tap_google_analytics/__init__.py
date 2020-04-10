@@ -120,7 +120,7 @@ def do_discover(client, config):
     """
     Make request to discover.py and write result to stdout.
     """
-    catalog = discover(client, config, config['view_id'])
+    catalog = discover(client, config, get_view_ids(config))
     write_catalog(catalog)
 
 def validate_config_view_ids(config):
