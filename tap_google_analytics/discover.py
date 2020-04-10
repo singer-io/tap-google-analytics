@@ -62,8 +62,26 @@ def type_to_schema(ga_type, field_id):
     else:
         raise Exception("Unknown Google Analytics type: {}".format(ga_type))
 
+def sort_schemas(sub_schemas):
+    schemas = [None, None, None, None]
+    for sub_schema in sub_schemas:
+        if "integer" in sub_schema["type"]:
+            schemas[0] = sub_schema
+        elif "number" in sub_schema["type"]:
+            schemas[1] = sub_schema
+        elif sub_schema.get("format") == "date-time":
+            schemas[2] = sub_schema
+        elif "string" in sub_schema["type"]:
+            schemas[3] = sub_schema
+        else:
+            raise Exception("Error sorting schemas, could not find slot for sub_schema: {}".format(sub_schema))
+    return [s for s in schemas if s is not None]
+
 def types_to_schema(ga_types, field_id):
-    return {"anyOf": [type_to_schema(t, field_id) for t in set(ga_types)]}
+    sub_schemas = [type_to_schema(t, field_id) for t in set(ga_types)]
+    if len(sub_schemas) == 1:
+        return sub_schemas[0]
+    return {"anyOf": sort_schemas(sub_schemas)}
 
 def is_static_XX_field(field_id, cubes_lookup):
     """
@@ -292,7 +310,7 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
 
         mdata = write_metadata(mdata, custom_field, cubes, custom_fields_support)
         schema["properties"][custom_field["id"]] = types_to_schema(custom_field["dataTypes"],
-                                                                  custom_field["id"])
+                                                                   custom_field["id"])
 
     return schema, mdata
 
