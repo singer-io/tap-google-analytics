@@ -65,11 +65,16 @@ def do_sync(client, config, catalog, state):
         # Transform state for this report to new format before proceeding
         state = clean_state_for_report(config, state, stream.tap_stream_id)
 
+        state = singer.set_currently_syncing(state, stream.tap_stream_id)
+        singer.write_state(state)
+
         metrics = []
         dimensions = []
         mdata = metadata.to_map(stream.metadata)
         for field_path, field_mdata in mdata.items():
             if field_path == tuple():
+                continue
+            if field_mdata.get('inclusion') == 'unsupported':
                 continue
             _, field_name = field_path
             if field_mdata.get('inclusion') == 'automatic' or \
@@ -114,9 +119,12 @@ def do_sync(client, config, catalog, state):
             singer.write_state(state)
 
             start_date = get_start_date(config, report['profile_id'], state, report['id'])
+
             sync_report(client, schema, report, start_date, end_date, state)
         state.pop('currently_syncing_view', None)
         singer.write_state(state)
+    state = singer.set_currently_syncing(state, None)
+    singer.write_state(state)
 
 def do_discover(client, config):
     """
