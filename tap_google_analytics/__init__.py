@@ -1,3 +1,4 @@
+import functools
 import itertools
 from datetime import timedelta
 
@@ -86,7 +87,8 @@ def do_sync(client, config, catalog, state):
         current_view = state.get('currently_syncing_view')
         if current_view:
             if current_view in view_ids:
-                view_ids = list(itertools.dropwhile(lambda v: v != current_view, view_ids))
+                view_not_current = functools.partial(lambda cv, v: v != cv, current_view)
+                view_ids = list(itertools.dropwhile(view_not_current, view_ids))
             else:
                 state.pop('currently_syncing_view', None)
 
