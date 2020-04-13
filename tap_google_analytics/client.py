@@ -106,7 +106,7 @@ class Client():
 
     @backoff.on_exception(backoff.expo,
                           (requests.exceptions.RequestException),
-                          max_tries=6,
+                          max_tries=10,
                           giveup=should_giveup,
                           factor=4,
                           jitter=None)
