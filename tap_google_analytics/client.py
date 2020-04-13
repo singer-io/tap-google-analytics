@@ -106,7 +106,7 @@ class Client():
 
     @backoff.on_exception(backoff.expo,
                           (requests.exceptions.RequestException),
-                          max_tries=6,
+                          max_tries=10,
                           giveup=should_giveup,
                           factor=4,
                           jitter=None)
@@ -248,10 +248,13 @@ class Client():
         """
         nextPageToken = None
         # TODO: Optimization, if speed is an issue, up to 5 requests can be placed per HTTP batch
-        # - This will require changes to all parsing code
+        # - This will require changes to all parsing code to account for multiple report responses coming back
         while True:
             report_date_string = report_date.strftime("%Y-%m-%d")
-            LOGGER.info("Making report request for %s (nextPageToken: %s)", report_date_string, nextPageToken)
+            LOGGER.info("Making report request for profile ID %s and date %s (nextPageToken: %s)",
+                        profile_id,
+                        report_date_string,
+                        nextPageToken)
             body = {"reportRequests":
                     [{"viewId": profile_id,
                       "dateRanges": [{"startDate": report_date_string,
