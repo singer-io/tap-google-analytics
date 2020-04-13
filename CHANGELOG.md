@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+  * Add ability to specify multiple profile IDs (e.g., `view_ids`) in config [#18](https://github.com/singer-io/tap-google-analytics/pull/18)
+    * Note: Custom metrics/dimensions and goal-related fields will be discovered as the intersection of all fields for all selected profiles. Selecting profiles across properties may result in some custom fields being marked `unsupported`
+    * If custom fields between profiles have different data types, their JSON schemas will be merged into an `anyOf` schema
+  * Will translate state to multiple profile format if not already formatted [#18](https://github.com/singer-io/tap-google-analytics/pull/18)
+  * Add `currently_syncing` and `currently_syncing_view` for resuming if many reports and profiles are selected [#18](https://github.com/singer-io/tap-google-analytics/pull/18)
+  * Increase 429 retry count to 10 [#18](https://github.com/singer-io/tap-google-analytics/pull/18)
+
 ## 0.3.0
   * Add pre-made reports that are always returned during discovery [#16](https://github.com/singer-io/tap-google-analytics/pull/16)
   * Report day-pagination now includes current day [#16](https://github.com/singer-io/tap-google-analytics/pull/16)
