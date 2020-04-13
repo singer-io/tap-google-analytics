@@ -139,7 +139,7 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
         record_count_by_stream = runner.examine_target_output_file(self, conn_id, self.expected_sync_streams(), self.expected_pks())
         replicated_row_count =  reduce(lambda accum,c : accum + c, record_count_by_stream.values(), 0)
         # TODO: GA account doesn't have any data in it
-        #self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(record_count_by_stream))
+        self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(record_count_by_stream))
         print("total replicated row count: {}".format(replicated_row_count))
 
         synced_records = runner.get_records_from_target_output()
