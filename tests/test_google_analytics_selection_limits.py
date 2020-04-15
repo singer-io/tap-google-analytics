@@ -13,8 +13,6 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
         10 metrics + 7 dimensions + 6 default fields
           default fields = {"_sdc_record_hash", "start_date", "end_date",
                             "account_id", "web_property_id", "profile_id"}
-    This ^ is not how dimensions and metrics work.
-    TODO Change assertion to reflect correct # of fields for a specific example
 
     Test reports that reflect different compatibility states
     • Verify that data is not replicated for a report when incompatible metrics and
