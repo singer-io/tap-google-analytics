@@ -15,8 +15,8 @@ class TestGoogleAnalyticsDataIncomplete(unittest.TestCase):
 
     • Verify that data with a 'start_date' of today, is re-replicated if 
       multiple replications are run in a single day
-
-    TODO Test differenet attribution models???
+    • Verify if data is not complete it is repreplicated if a sync is ran at a later time
+      (This most likely )
     """
     def setUp(self):
         missing_envs = [x for x in ['TAP_GOOGLE_ANALYTICS_CLIENT_ID',

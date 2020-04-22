@@ -73,12 +73,34 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
     def expected_default_fields(self):
         return {
             "report 1" : {},
-            "Audience Overview": {"ga:users","ga:newUsers","ga:sessions","ga:sessionsPerUser","ga:pageviews","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date"},
-            "Audience Geo Location": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date","ga:country","ga:city","ga:continent","ga:subContinent"},
-            "Audience Technology": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date","ga:browser","ga:operatingSystem"},
-            "Acquisition Overview": {"ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:acquisitionTrafficChannel","ga:acquisitionSource","ga:acquisitionSourceMedium","ga:acquisitionMedium"},
-            "Behavior Overview": {"ga:pageviews","ga:uniquePageviews","ga:avgTimeOnPage","ga:bounceRate","ga:exitRate","ga:exits","ga:date","ga:pagePath","ga:pageTitle","ga:searchKeyword"},
-            "Ecommerce Overview": {"ga:transactions","ga:transactionId","ga:campaign","ga:source","ga:medium","ga:keyword","ga:socialNetwork"}
+            "Audience Overview": {
+                "ga:users","ga:newUsers","ga:sessions","ga:sessionsPerUser","ga:pageviews",\
+                "ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date"
+            },
+            "Audience Geo Location": {
+                "ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession",\
+                "ga:avgSessionDuration","ga:bounceRate","ga:date","ga:country",\
+                "ga:city","ga:continent","ga:subContinent"
+            },
+            "Audience Technology": {
+                "ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession",\
+                "ga:avgSessionDuration","ga:bounceRate","ga:date","ga:browser",\
+                "ga:operatingSystem"
+            },
+            "Acquisition Overview": {
+                "ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration",\
+                "ga:bounceRate","ga:acquisitionTrafficChannel","ga:acquisitionSource",\
+                "ga:acquisitionSourceMedium","ga:acquisitionMedium"
+            },
+            "Behavior Overview": {
+                "ga:pageviews","ga:uniquePageviews","ga:avgTimeOnPage","ga:bounceRate",\
+                "ga:exitRate","ga:exits","ga:date","ga:pagePath","ga:pageTitle",\
+                "ga:searchKeyword"
+            },
+            "Ecommerce Overview": {
+                "ga:transactions","ga:transactionId","ga:campaign","ga:source","ga:medium",\
+                "ga:keyword","ga:socialNetwork"
+            }
         }
 
     def get_properties(self):
