@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.1
+  * Removed `ga:searchKeyword` from `Behavior Overview` default dimensions to closer match the Google Analytics UI report [#20](https://github.com/singer-io/tap-google-analytics/pull/20)
+
 ## 0.4.0
   * Add ability to specify multiple profile IDs (e.g., `view_ids`) in config [#18](https://github.com/singer-io/tap-google-analytics/pull/18)
     * Note: Custom metrics/dimensions and goal-related fields will be discovered as the intersection of all fields for all selected profiles. Selecting profiles across properties may result in some custom fields being marked `unsupported`
