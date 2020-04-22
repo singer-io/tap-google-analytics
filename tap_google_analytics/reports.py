@@ -128,8 +128,7 @@ PREMADE_REPORTS = [
         "default_dimensions": [
             "ga:date",
             "ga:pagePath",
-            "ga:pageTitle",
-            "ga:searchKeyword"
+            "ga:pageTitle"
         ]
     },
     {

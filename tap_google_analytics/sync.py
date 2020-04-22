@@ -119,8 +119,8 @@ def sync_report(client, schema, report, start_date, end_date, state):
                 if all_data_golden:
                     singer.write_bookmark(state,
                                           report["id"],
-                                          "last_report_date",
-                                          report_date.strftime("%Y-%m-%d"))
+                                          report['profile_id'],
+                                          {'last_report_date': report_date.strftime("%Y-%m-%d")})
                     singer.write_state(state)
                     if not is_data_golden:
                         # Stop bookmarking on first "isDataGolden": False

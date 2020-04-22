@@ -62,6 +62,27 @@ def type_to_schema(ga_type, field_id):
     else:
         raise Exception("Unknown Google Analytics type: {}".format(ga_type))
 
+def sort_schemas(sub_schemas):
+    schemas = [None, None, None, None]
+    for sub_schema in sub_schemas:
+        if "integer" in sub_schema["type"]:
+            schemas[0] = sub_schema
+        elif "number" in sub_schema["type"]:
+            schemas[1] = sub_schema
+        elif sub_schema.get("format") == "date-time":
+            schemas[2] = sub_schema
+        elif "string" in sub_schema["type"]:
+            schemas[3] = sub_schema
+        else:
+            raise Exception("Error sorting schemas, could not find slot for sub_schema: {}".format(sub_schema))
+    return [s for s in schemas if s is not None]
+
+def types_to_schema(ga_types, field_id):
+    sub_schemas = [type_to_schema(t, field_id) for t in set(ga_types)]
+    if len(sub_schemas) == 1:
+        return sub_schemas[0]
+    return {"anyOf": sort_schemas(sub_schemas)}
+
 def is_static_XX_field(field_id, cubes_lookup):
     """
     GA has fields that are documented using a placeholder of `XX`, where
@@ -126,18 +147,21 @@ goal_related_field_ids = ['ga:goalXXStarts',
                           'ga:goalXXAbandonRate',
                           'ga:searchGoalXXConversionRate']
 
-def get_dynamic_field_names(client, field, profile_id):
+def get_dynamic_fields_named(client, field, profile_id):
     """
     For known field types, retrieve their numeric forms through the client
     on a case-by-case basis (e.g., goals)
     """
     if field['id'] in goal_related_field_ids:
-        return [field['id'].replace('XX', str(i)) for i in client.get_goals_for_profile(profile_id)]
+        return [{**field,
+                 "id": field['id'].replace('XX', str(i)),
+                 "profiles": [profile_id]}
+                for i in client.get_goals_for_profile(profile_id)]
     else:
         # Skip unknown, or already handled, dynamic fields
         return []
 
-def handle_dynamic_XX_field(client, field, cubes_lookup, profile_id):
+def handle_dynamic_XX_field(client, field, cubes_lookup, profile_ids):
     """
     Discovers dynamic names of a given XX field using `client` with
     `get_dynamic_field_names` and matches them with the cubes known
@@ -148,18 +172,35 @@ def handle_dynamic_XX_field(client, field, cubes_lookup, profile_id):
     - Sub Schemas  {"<numeric_field_id>": {...field schema}, ...}
     - Sub Metadata {"numeric_field_id>": {...cubes metadata value}, ...}
     """
-    dynamic_field_names = get_dynamic_field_names(client, field, profile_id)
+    # Do the logic of all profiles
+    dynamic_field_names_per_profile = {}
+    for profile_id in profile_ids:
+        dynamic_field_names_per_profile[profile_id] = get_dynamic_fields_named(client, field, profile_id)
 
-    sub_schemas = {d: type_to_schema(field["dataType"],field["id"])
-                   for d in dynamic_field_names}
+    dynamic_superfields = get_custom_fields_supertypes(dynamic_field_names_per_profile)
 
-    sub_metadata = {r: cubes_lookup[field['id']]
-                    for r in dynamic_field_names}
-    return sub_schemas, sub_metadata
+    sub_schemas = {d['id']: types_to_schema(d["dataTypes"], field["id"])
+                   for d in dynamic_superfields}
 
-def write_metadata(mdata, field, cubes):
+    sub_metadata = {r['id']: cubes_lookup[field['id']]
+                    for r in dynamic_superfields}
+
+    dynamic_fields_support = calculate_custom_fields_support(dynamic_field_names_per_profile)
+
+    return sub_schemas, sub_metadata, dynamic_fields_support
+
+def write_metadata(mdata, field, cubes, custom_fields_support=None):
     """ Translate a field_info object and its cubes into its metadata, and write it. """
-    mdata = metadata.write(mdata, ("properties", field["id"]), "inclusion", "available")
+    unsupported_profiles = (custom_fields_support or {}).get(field['id'])
+    if custom_fields_support is None or not unsupported_profiles:
+        mdata = metadata.write(mdata, ("properties", field["id"]), "inclusion", "available")
+    else:
+        mdata = metadata.write(mdata, ("properties", field["id"]), "inclusion", "unsupported")
+        mdata = metadata.write(mdata,
+                               ("properties", field["id"]),
+                               "unsupported-description",
+                               "This field cannot be selected because it is not defined in profile(s): {}".format(
+                                   ', '.join(unsupported_profiles)))
     mdata = metadata.write(mdata, ("properties", field["id"]), "tap_google_analytics.cubes", list(cubes))
     mdata = metadata.write(mdata, ("properties", field["id"]), "behavior", field["type"])
     mdata = metadata.write(mdata, ("properties", field["id"]), "tap_google_analytics.group", field["group"])
@@ -188,7 +229,44 @@ def generate_base_metadata(all_cubes, schema):
                    mdata)
     return mdata
 
-def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
+def calculate_custom_fields_support(custom_fields):
+    """
+    Return a dictionary of `{field_id: set(profiles_that_don't_support_it)}`.
+    `custom_fields` should be of the form: {profile_id: [field_definition, ...], ...}
+    """
+    all_profiles = set(custom_fields.keys())
+    custom_fields_sets = {}
+    for fields in custom_fields.values():
+        for field in fields:
+            custom_fields_sets[field['id']] = (custom_fields_sets.get(field['id'], all_profiles) -
+                                               set(field['profiles']))
+
+    return custom_fields_sets
+
+def get_custom_fields_supertypes(custom_fields):
+    """
+    Returns a list of fields with their aggregate things.
+    E.g., [{
+        "id": "ga:metric1",
+        "kind": "analytics#customMetric",
+        "dataTypes": ["string", "currency", ...],
+        "type": "METRIC",
+        "group": "Custom Fields"
+    }, ...]
+    """
+    super_fields = {}
+    for fields in custom_fields.values():
+        for field in fields:
+            super_field = super_fields.get(field['id'], {"id": field["id"],
+                                                         "kind": field.get("kind"),
+                                                         "dataTypes": set(),
+                                                         "type": field["type"],
+                                                         "group": field["group"]})
+            super_field['dataTypes'].add(field['dataType'])
+            super_fields[field['id']] = super_field
+    return list(super_fields.values())
+
+def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_ids):
     schema = generate_base_schema()
     mdata = generate_base_metadata(all_cubes, schema)
 
@@ -203,17 +281,24 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
                 specific_field = {**standard_field, **{"id": calculated_id}}
                 mdata = write_metadata(mdata, specific_field, cubes)
         elif is_dynamic_XX_field(standard_field["id"], cubes_lookup):
-            sub_schemas, sub_mdata = handle_dynamic_XX_field(client, standard_field, cubes_lookup, profile_id)
+            sub_schemas, sub_mdata, dynamic_fields_support = handle_dynamic_XX_field(client,
+                                                                                     standard_field,
+                                                                                     cubes_lookup,
+                                                                                     profile_ids)
             schema["properties"].update(sub_schemas)
             for calculated_id, cubes in sub_mdata.items():
                 specific_field = {**standard_field, **{"id": calculated_id}}
-                mdata = write_metadata(mdata, specific_field, cubes)
+                mdata = write_metadata(mdata, specific_field, cubes, dynamic_fields_support)
         else:
             schema["properties"][standard_field["id"]] = type_to_schema(standard_field["dataType"],
                                                                         standard_field["id"])
-            mdata = write_metadata(mdata, standard_field, cubes_lookup[standard_field["id"]])
+            mdata = write_metadata(mdata,
+                                   standard_field,
+                                   cubes_lookup[standard_field["id"]])
 
-    for custom_field in custom_fields:
+    custom_fields_support = calculate_custom_fields_support(custom_fields)
+    custom_super_fields = get_custom_fields_supertypes(custom_fields)
+    for custom_field in custom_super_fields:
         if custom_field["kind"] == 'analytics#customDimension':
             cubes_lookup_name = 'ga:dimensionXX'
         elif custom_field["kind"] == 'analytics#customMetric':
@@ -223,9 +308,9 @@ def generate_catalog_entry(client, standard_fields, custom_fields, all_cubes, cu
 
         cubes = cubes_lookup[cubes_lookup_name]
 
-        mdata = write_metadata(mdata, custom_field, cubes)
-        schema["properties"][custom_field["id"]] = type_to_schema(custom_field["dataType"],
-                                                                  custom_field["id"])
+        mdata = write_metadata(mdata, custom_field, cubes, custom_fields_support)
+        schema["properties"][custom_field["id"]] = types_to_schema(custom_field["dataTypes"],
+                                                                   custom_field["id"])
 
     return schema, mdata
 
@@ -320,7 +405,7 @@ def get_standard_fields(client):
     unsupported_fields = {"ga:customVarValueXX", "ga:customVarNameXX", "ga:calcMetric_<NAME>"}
     return [transform_field(f) for f in metadata_response["items"] if f["id"] not in unsupported_fields]
 
-def generate_catalog(client, report_config, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id):
+def generate_catalog(client, report_config, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_ids):
     """
     Generate a catalog entry for each report specified in `report_config`
     """
@@ -346,14 +431,13 @@ def generate_catalog(client, report_config, standard_fields, custom_fields, all_
                                             tap_stream_id=report['name'],
                                             metadata=metadata.to_list(mdata)))
 
-
     for report in report_config:
         schema, mdata = generate_catalog_entry(client,
                                                standard_fields,
                                                custom_fields,
                                                all_cubes,
                                                cubes_lookup,
-                                               profile_id)
+                                               profile_ids)
 
         catalog_entries.append(CatalogEntry(schema=Schema.from_dict(schema),
                                             key_properties=['_sdc_record_hash'],
@@ -362,15 +446,17 @@ def generate_catalog(client, report_config, standard_fields, custom_fields, all_
                                             metadata=metadata.to_list(mdata)))
     return Catalog(catalog_entries)
 
-def discover(client, config, profile_id):
+def discover(client, config, profile_ids):
     # Draw from spike to discover all the things
     # Get field_infos (standard and custom)
     report_config = config.get("report_definitions") or []
     LOGGER.info("Discovering standard fields...")
     standard_fields = get_standard_fields(client)
     LOGGER.info("Discovering custom fields...")
-    custom_fields = get_custom_fields(client, profile_id)
+    custom_fields = {}
+    for profile_id in profile_ids:
+        custom_fields[profile_id] = get_custom_fields(client, profile_id)
     LOGGER.info("Parsing cube definitions...")
     all_cubes, cubes_lookup = parse_cube_definitions(client)
     LOGGER.info("Generating catalog...")
-    return generate_catalog(client, report_config, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_id)
+    return generate_catalog(client, report_config, standard_fields, custom_fields, all_cubes, cubes_lookup, profile_ids)
