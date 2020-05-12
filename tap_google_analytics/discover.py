@@ -27,7 +27,8 @@ integer_field_overrides = {'ga:cohortNthDay',
                            'ga:visitsToTransaction'}
 
 datetime_field_overrides = {'ga:date',
-                            'ga:dateHour'}
+                            'ga:dateHour',
+                            'ga:dateHourMinute'}
 
 float_field_overrides = {'ga:latitude',
                          'ga:longitude',
