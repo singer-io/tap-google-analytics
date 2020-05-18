@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+  * Correctly parsing datetime fields in the `Time` group using Google's compressed format [#22](https://github.com/singer-io/tap-google-analytics/pull/22)
+
 ## 0.4.1
   * Removed `ga:searchKeyword` from `Behavior Overview` default dimensions to closer match the Google Analytics UI report [#20](https://github.com/singer-io/tap-google-analytics/pull/20)
 
