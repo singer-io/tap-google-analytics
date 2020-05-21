@@ -28,7 +28,7 @@ def is_retryable_403(e):
 def should_giveup(e):
     should_retry = e.response.status_code == 429 or is_retryable_403(e)
 
-    if should_retry and is_json(e.response):
+    if should_retry and _is_json(e.response):
         error_message = e.response.json().get("error", {}).get("message")
         if error_message:
             LOGGER.info("Encountered retryable %s, backing off exponentially. Details: %s",
