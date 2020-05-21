@@ -14,6 +14,13 @@ import backoff
 LOGGER = singer.get_logger()
 
 def is_retryable_403(e):
+    """
+    The Google Analytics Management API and Metadata API define three types of 403s that are retryable due to quota limits.
+
+    Docs:
+    https://developers.google.com/analytics/devguides/config/mgmt/v3/errors
+    https://developers.google.com/analytics/devguides/reporting/metadata/v3/errors
+    """
     response = e.response
     if not _is_json(response):
         return False
@@ -149,9 +156,8 @@ class Client():
         else:
             response = self.session.request(method, url, headers=headers, params=params)
 
-        response_is_json = _is_json(response)
-        error_message = response_is_json and response.json().get("error", {}).get("message")
-        if response.status_code in [400, 403] and error_message:
+        error_message = _is_json(response) and response.json().get("error", {}).get("message")
+        if response.status_code in {400, 403} and error_message:
             raise Exception("{} Error from Google - Details: {}".format(response.status_code, error_message))
 
         response.raise_for_status()
