@@ -13,12 +13,29 @@ import backoff
 
 LOGGER = singer.get_logger()
 
+def is_retryable_403(e):
+    response = e.response
+    if not _is_json(response):
+        return False
+
+    retryable_errors = ["userRateLimitExceeded", "rateLimitExceeded", "quotaExceeded"]
+    error_reasons = [error.get('reason') for error in response.json().get('errors',[])]
+    for retryable_error in retryable_errors:
+        if retryable_error in error_reasons:
+            return True
+    return False
+
 def should_giveup(e):
-    if e.response.status_code == 429:
+    should_retry = e.response.status_code == 429 or is_retryable_403(e)
+
+    if should_retry and is_json(e.response):
         error_message = e.response.json().get("error", {}).get("message")
         if error_message:
-            LOGGER.info("Encountered 429, backing off exponentially. Details: %s", error_message)
-    return not e.response.status_code == 429
+            LOGGER.info("Encountered retryable %s, backing off exponentially. Details: %s",
+                        e.response.status_code,
+                        error_message)
+
+    return not should_retry
 
 def _is_json(response):
     try:
@@ -127,11 +144,8 @@ class Client():
 
         response_is_json = _is_json(response)
         error_message = response_is_json and response.json().get("error", {}).get("message")
-        if response.status_code == 400 and error_message:
-            raise Exception("400 Client Error: Bad Request, details: {}".format(error_message))
-
-        if response.status_code == 403 and response_is_json:
-            raise Exception("403 Client Error - Details: {}".format(response.json()))
+        if response.status_code in [400, 403] and error_message:
+            raise Exception("{} Error from Google - Details: {}".format(response.status_code, error_message))
 
         response.raise_for_status()
 
