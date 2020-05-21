@@ -18,14 +18,21 @@ def is_retryable_403(e):
     if not _is_json(response):
         return False
 
-    retryable_errors = ["userRateLimitExceeded", "rateLimitExceeded", "quotaExceeded"]
-    error_reasons = [error.get('reason') for error in response.json().get('errors',[])]
-    for retryable_error in retryable_errors:
-        if retryable_error in error_reasons:
-            return True
+    retryable_errors = {"userRateLimitExceeded", "rateLimitExceeded", "quotaExceeded"}
+    error_reasons = {error.get('reason') for error in response.json().get('errors',[])}
+
+    if any(error_reasons.intersection(retryable_errors)):
+        return True
+
     return False
 
 def should_giveup(e):
+    """
+    Note: Due to `backoff` expecting a `giveup` parameter, this function returns:
+
+    True - if the exception is NOT retryable
+    False - if the exception IS retryable
+    """
     should_retry = e.response.status_code == 429 or is_retryable_403(e)
 
     if should_retry and _is_json(e.response):
