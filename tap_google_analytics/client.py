@@ -158,8 +158,8 @@ class Client():
             response = self.session.request(method, url, headers=headers, params=params)
 
         error_message = _is_json(response) and response.json().get("error", {}).get("message")
-        if response.status_code in {400, 403} and error_message:
-            raise Exception("{} Error from Google - Details: {}".format(response.status_code, error_message))
+        if response.status_code == 400 and error_message:
+            raise Exception("400 Client Error: Bad Request, details: {}".format(error_message))
 
         response.raise_for_status()
 
