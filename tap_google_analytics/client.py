@@ -125,9 +125,13 @@ class Client():
         else:
             response = self.session.request(method, url, headers=headers, params=params)
 
-        error_message = _is_json(response) and response.json().get("error", {}).get("message")
+        response_is_json = _is_json(response)
+        error_message = response_is_json and response.json().get("error", {}).get("message")
         if response.status_code == 400 and error_message:
             raise Exception("400 Client Error: Bad Request, details: {}".format(error_message))
+
+        if response.status_code == 403 and response_is_json:
+            raise Exception("403 Client Error - Details: {}".format(response.json()))
 
         response.raise_for_status()
 
