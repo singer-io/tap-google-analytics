@@ -13,12 +13,44 @@ import backoff
 
 LOGGER = singer.get_logger()
 
+def is_retryable_403(response):
+    """
+    The Google Analytics Management API and Metadata API define three types of 403s that are retryable due to quota limits.
+
+    Docs:
+    https://developers.google.com/analytics/devguides/config/mgmt/v3/errors
+    https://developers.google.com/analytics/devguides/reporting/metadata/v3/errors
+    """
+    retryable_errors = {"userRateLimitExceeded", "rateLimitExceeded", "quotaExceeded"}
+    error_reasons = {error.get('reason') for error in response.json().get('errors',[])}
+
+    if any(error_reasons.intersection(retryable_errors)):
+        return True
+
+    return False
+
 def should_giveup(e):
-    if e.response.status_code == 429:
-        error_message = e.response.json().get("error", {}).get("message")
+    """
+    Note: Due to `backoff` expecting a `giveup` parameter, this function returns:
+
+    True - if the exception is NOT retryable
+    False - if the exception IS retryable
+    """
+    response = e.response
+    if not _is_json(response):
+        # All of our retryable errors require a JSON response body
+        return False
+
+    should_retry = response.status_code == 429 or is_retryable_403(response)
+
+    if should_retry:
+        error_message = response.json().get("error", {}).get("message")
         if error_message:
-            LOGGER.info("Encountered 429, backing off exponentially. Details: %s", error_message)
-    return not e.response.status_code == 429
+            LOGGER.info("Encountered retryable %s, backing off exponentially. Details: %s",
+                        response.status_code,
+                        error_message)
+
+    return not should_retry
 
 def _is_json(response):
     try:
