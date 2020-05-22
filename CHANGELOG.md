@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.4
+  * Fixes error structure issue with retryable 403s introduced in 0.4.3 [#26](https://github.com/singer-io/tap-google-analytics/pull/26)
+
 ## 0.4.3
   * Retry certain 403 error responses for the management and metadata APIs [#24](https://github.com/singer-io/tap-google-analytics/pull/24)
 
