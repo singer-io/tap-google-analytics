@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.3
+  * Retry certain 403 error responses for the management and metadata APIs [#24](https://github.com/singer-io/tap-google-analytics/pull/24)
+
 ## 0.4.2
   * Correctly parsing datetime fields in the `Time` group using Google's compressed format [#22](https://github.com/singer-io/tap-google-analytics/pull/22)
 
