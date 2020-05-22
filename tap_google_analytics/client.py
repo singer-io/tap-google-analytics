@@ -22,7 +22,7 @@ def is_retryable_403(response):
     https://developers.google.com/analytics/devguides/reporting/metadata/v3/errors
     """
     retryable_errors = {"userRateLimitExceeded", "rateLimitExceeded", "quotaExceeded"}
-    error_reasons = {error.get('reason') for error in response.json().get('errors',[])}
+    error_reasons = {error.get('reason') for error in response.json().get('error', {}).get('errors',[])}
 
     if any(error_reasons.intersection(retryable_errors)):
         return True
