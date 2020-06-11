@@ -86,8 +86,9 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
 
     def expected_default_fields(self):
         return {
-            "Audience Overview": {"ga:users","ga:newUsers","ga:sessions","ga:sessionsPerUser","ga:pageviews",
-                                  "ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date"},
+            "Audience Overview": {"ga:avgSessionDuration","ga:bounceRate","ga:browser","ga:city","ga:country","ga:date",
+                                  "ga:hour","ga:language","ga:month","ga:newUsers","ga:operatingSystem","ga:pageviews",
+                                  "ga:pageviewsPerSession","ga:sessions","ga:sessionsPerUser","ga:users","ga:year"},
             "Audience Geo Location": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration",
                                       "ga:bounceRate","ga:date","ga:country","ga:city","ga:continent","ga:subContinent"},
             "Audience Technology": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration",
@@ -136,13 +137,14 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
 
     def get_field_selection(self):
         return {
-            "Audience Overview": set(),
-            "Audience Geo Location": {"ga:year", "ga:month"}, # 7 dimensions
-            "Audience Technology": set(),
+            "Audience Overview": set(),  # 10 dimensions 7 metrics MAX both for a standard report
+            "Audience Geo Location": {"ga:year", "ga:month"}, # 7 metrics MAX
+            "Audience Technology": set(), 
             "Acquisition Overview": set(),
             "Behavior Overview": set(),
             "Ecommerce Overview": set(),
-            "Test Report 1": { #set(),  # 10 metrics, 5 dim (max for custom report)
+            "Test Report 1":  # 10 metrics, 5 dim (max for custom report)
+            {
                 "ga:sessions","ga:users","ga:bounces","ga:hits","ga:newUsers",\
                 "ga:avgSessionDuration","ga:pagesPerSession","ga:bounceRate",\
                 "ga:avgTimeOnPage","ga:sessionDuration","ga:deviceCategory",\
@@ -194,3 +196,17 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
                 self.assertEqual(record_keys, (self.expected_automatic_fields().get(stream_name, set()) |
                                                set(self.expected_default_fields()[stream_name]) |
                                                self.get_field_selection().get(stream_name, set())))
+        # Verify the number of fields (metrics, dimensions, and default values) match expectations for each stream
+
+        """
+        • Verify that a synced report using maximum number of metrics and dimensions
+         (10 & 7 respectively) results in records with 23 fields.
+           10 metrics + 7 dimensions + 6 default fields
+             default fields = {"_sdc_record_hash", "start_date", "end_date",
+                               "account_id", "web_property_id", "profile_id"}
+
+       Test reports that reflect different compatibility states
+       • Verify that data is not replicated for a report when incompatible metrics and
+         dimensions are selected
+       • Verify that data is replicated for compatible metrics and dimensions???
+       """

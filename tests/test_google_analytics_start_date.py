@@ -24,8 +24,7 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
 
     START_DATE = ""
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
-    #START_DATE_FORMAT = "2020-03-11T00:00:00Z" # TODO DELETE once confirmed
-
+    
     def setUp(self):
         missing_envs = [x for x in ['TAP_GOOGLE_ANALYTICS_CLIENT_ID',
                                     'TAP_GOOGLE_ANALYTICS_CLIENT_SECRET',
@@ -200,6 +199,7 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
 
         # create a new connection with the new start_date
         conn_id = connections.ensure_connection(self, original_properties=False)
+
 
         #run in check mode
         check_job_name = runner.run_check_mode(self, conn_id)
