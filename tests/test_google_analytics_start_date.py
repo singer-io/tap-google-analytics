@@ -1,11 +1,12 @@
-import tap_tester.connections as connections
-import tap_tester.menagerie   as menagerie
-import tap_tester.runner      as runner
 import os
 import unittest
 from datetime import datetime as dt
 from datetime import timedelta
 from functools import reduce
+
+import tap_tester.connections as connections
+import tap_tester.menagerie   as menagerie
+import tap_tester.runner      as runner
 
 
 class TestGoogleAnalyticsStartDate(unittest.TestCase):
@@ -30,7 +31,7 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
                                     'TAP_GOOGLE_ANALYTICS_CLIENT_SECRET',
                                     'TAP_GOOGLE_ANALYTICS_REFRESH_TOKEN',
                                     'TAP_GOOGLE_ANALYTICS_VIEW_ID'] if os.getenv(x) == None]
-                                    #'TAP_GA_MERCH_VIEW_ID'] if os.getenv(x) == None]
+
         if len(missing_envs) != 0:
             raise Exception("Missing environment variables: {}".format(missing_envs))
 
@@ -103,9 +104,8 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
 
     def get_properties(self, original: bool = True):
         return_value = {
-            'start_date' : '2020-03-11T00:00:00Z',
+            'start_date' : dt.strftime(dt.utcnow() - timedelta(days=30), self.START_DATE_FORMAT),
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
-            #'view_id': os.getenv('TAP_GA_MERCH_VIEW_ID'),
             'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "report 1"}]
         }
         if original:
@@ -200,7 +200,6 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
         # create a new connection with the new start_date
         conn_id = connections.ensure_connection(self, original_properties=False)
 
-
         #run in check mode
         check_job_name = runner.run_check_mode(self, conn_id)
 
@@ -220,7 +219,7 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
         self.select_all_catalogs(conn_id, found_catalogs)
 
         # clear state
-        menagerie.set_state(conn_id, {}) # TODO is this necessary????
+        menagerie.set_state(conn_id, {})
 
         # Run sync 2
         sync_job_2 = runner.run_sync_mode(self, conn_id)
@@ -284,15 +283,11 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
                                  set(),
                                  msg="Got an extra record for a day outside of the sync range")
 
-                # Verify the stream does not have duplicate records for any given day
-                # The assertion is valid but the execution of it is not
-                # self.assertEqual(len(unique_start_dates) - len(record_messages), 0,
-                #                  msg="Expected to have unique records for {} days ".format(len(record_messages)) +
-                #                  "but got unique records for {} days".format(len(unique_start_dates)))
+                # TODO Verify the stream does not have duplicate records for any given day
 
         # Test by stream
-        for stream in self.expected_sync_streams().difference({'Ecommerce Overview','Behavior Overview'}):
-            # TODO figure out why these streams are not replicating ^ (BUG OR TEST_ISSUE)
+        missing_records_streams = {'Behavior Overview', 'Ecommerce Overview'}
+        for stream in self.expected_sync_streams().difference(missing_records_streams):
             # Verify the 2nd sync got more records per stream than the 1st
             self.assertGreater(record_count_by_stream_2.get(stream, 0),
                                record_count_by_stream_1.get(stream, 0),
@@ -300,5 +295,6 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
                                "Expected sync with start date {} to have more records ".format(start_date_2) +
                                "than sync with start date {}. It does not.".format(start_date_1))
 
-
-            
+        if missing_records_streams:
+            print("\n\n THE FOLLOWING STREAMS DID NOT REPLICATE DATA, FIELD SELECTION MUST BE INVALID:\n")
+            print(missing_records_streams + "\n\n")
