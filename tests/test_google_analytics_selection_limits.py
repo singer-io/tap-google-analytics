@@ -190,7 +190,8 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
         print("total replicated row count: {}".format(replicated_row_count))
 
         # Verify we got data for expected streams
-        # BUG |
+        # BUG | 'Test Report 1' | https://stitchdata.atlassian.net/browse/SRCE-3374
+        # BUG | 'Ecommerce Overview' | https://stitchdata.atlassian.net/browse/SRCE-3375
         for stream in self.expected_sync_streams().difference({'Ecommerce Overview', 'Test Report 1'}):
             self.assertGreater(record_count_by_stream.get(stream, 0), 0,
                                msg="Did not replicate any data for {}".format(stream))
@@ -213,4 +214,4 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
                                                set(self.expected_default_fields()[stream_name]) |
                                                self.get_field_selection().get(stream_name, set())))
 
-                # Verify that data is not replicated for a report when incompatible metrics and dimensions are selected
+                # TODO Verify that data is not replicated for a report when incompatible metrics and dimensions are selected

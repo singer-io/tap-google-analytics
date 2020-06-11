@@ -11,16 +11,7 @@ import tap_tester.runner      as runner
 
 class TestGoogleAnalyticsStartDate(unittest.TestCase):
     """
-    Test that the replication start date is respected
-
-    • verify all streams have exactly 1 record per day starting with the replication
-      start date and ending with today
-    • verify for any given stream that a sync with an earlier replication start date has
-      exactly x records more than the 1st sync with a later replication start date, where 
-          x = difference in days between the two start dates
-    TODO Determine if this ^ is necessary, first bullet true would imply second bullet is true...
-    • verify all records in a given stream have a unique 'start_date' value in that sync
-    • verify that 'start_date' == 'end_date' is True for all records of a given stream 
+    Test that the replication start date is respected by all reports
     """
 
     START_DATE = ""
