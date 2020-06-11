@@ -1,9 +1,14 @@
+import os
+import unittest
+from datetime import datetime as dt
+from datetime import timedelta
+
+from functools import reduce
+
 import tap_tester.connections as connections
 import tap_tester.menagerie   as menagerie
 import tap_tester.runner      as runner
-import os
-import unittest
-from functools import reduce
+
 
 class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
     """
@@ -19,6 +24,8 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
       dimensions are selected
     • Verify that data is replicated for compatible metrics and dimensions???
     """
+    START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
+
     def setUp(self):
         missing_envs = [x for x in ['TAP_GOOGLE_ANALYTICS_CLIENT_ID',
                                     'TAP_GOOGLE_ANALYTICS_CLIENT_SECRET',
@@ -110,7 +117,7 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
 
     def get_properties(self):
         return {
-            'start_date' : '2020-03-01T00:00:00Z',
+            'start_date' : dt.strftime(dt.utcnow() - timedelta(days=7), self.START_DATE_FORMAT),
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
             'report_definitions': [{"id": "test-report-1", "name": "Test Report 1"}]
         }
@@ -193,20 +200,17 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
         for stream_name, data in synced_records.items():
             record_messages = [set(row['data'].keys()) for row in data['messages']]
             for record_keys in record_messages:
+                expected_number_of_fields = len(self.expected_automatic_fields().get(stream_name, set())) + \
+                    len(set(self.expected_default_fields()[stream_name])) + len(self.get_field_selection().get(stream_name, set()))
+
+                # Verify the number of fields (metrics, dimensions, and default values) match expectations for each stream
+                self.assertEqual(expected_number_of_fields, len(record_keys),
+                                 msg="Got an unexpected number of fields for {}".format(stream_name)
+                )
+
+                # Verify the expected field names match what was replciated
                 self.assertEqual(record_keys, (self.expected_automatic_fields().get(stream_name, set()) |
                                                set(self.expected_default_fields()[stream_name]) |
                                                self.get_field_selection().get(stream_name, set())))
-        # Verify the number of fields (metrics, dimensions, and default values) match expectations for each stream
 
-        """
-        • Verify that a synced report using maximum number of metrics and dimensions
-         (10 & 7 respectively) results in records with 23 fields.
-           10 metrics + 7 dimensions + 6 default fields
-             default fields = {"_sdc_record_hash", "start_date", "end_date",
-                               "account_id", "web_property_id", "profile_id"}
-
-       Test reports that reflect different compatibility states
-       • Verify that data is not replicated for a report when incompatible metrics and
-         dimensions are selected
-       • Verify that data is replicated for compatible metrics and dimensions???
-       """
+                # Verify that data is not replicated for a report when incompatible metrics and dimensions are selected
