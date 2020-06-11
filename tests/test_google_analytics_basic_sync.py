@@ -1,11 +1,17 @@
+import os
+import unittest
+from datetime import datetime as dt
+from datetime import timedelta
+from functools import reduce
+
 import tap_tester.connections as connections
 import tap_tester.menagerie   as menagerie
 import tap_tester.runner      as runner
-import os
-import unittest
-from functools import reduce
+
 
 class TestGoogleAnalyticsBasicSync(unittest.TestCase):
+    START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
+
     def setUp(self):
         missing_envs = [x for x in ['TAP_GOOGLE_ANALYTICS_CLIENT_ID',
                                     'TAP_GOOGLE_ANALYTICS_CLIENT_SECRET',
@@ -100,7 +106,7 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
 
     def get_properties(self):
         return {
-            'start_date' : '2020-03-01T00:00:00Z',
+            'start_date' : dt.strftime(dt.utcnow() - timedelta(days=30), self.START_DATE_FORMAT),  # 'start_date' : '2020-03-01T00:00:00Z',
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
             'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "report 1"}]
         }
@@ -155,7 +161,6 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
         # This should be validating the the PKs are written in each record
         record_count_by_stream = runner.examine_target_output_file(self, conn_id, self.expected_sync_streams(), self.expected_pks())
         replicated_row_count =  reduce(lambda accum,c : accum + c, record_count_by_stream.values(), 0)
-        # TODO: GA account doesn't have any data in it
         self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(record_count_by_stream))
         print("total replicated row count: {}".format(replicated_row_count))
 
