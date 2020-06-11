@@ -297,4 +297,4 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
 
         if missing_records_streams:
             print("\n\n THE FOLLOWING STREAMS DID NOT REPLICATE DATA, FIELD SELECTION MUST BE INVALID:\n")
-            print(missing_records_streams + "\n\n")
+            print("{}\n\n".format(missing_records_streams))
