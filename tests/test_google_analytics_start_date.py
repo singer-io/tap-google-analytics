@@ -98,7 +98,7 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
             "Audience Geo Location": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date","ga:country","ga:city","ga:continent","ga:subContinent"},
             "Audience Technology": {"ga:users","ga:newUsers","ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:date","ga:browser","ga:operatingSystem"},
             "Acquisition Overview": {"ga:sessions","ga:pageviewsPerSession","ga:avgSessionDuration","ga:bounceRate","ga:acquisitionTrafficChannel","ga:acquisitionSource","ga:acquisitionSourceMedium","ga:acquisitionMedium"},
-            "Behavior Overview": {"ga:pageviews","ga:uniquePageviews","ga:avgTimeOnPage","ga:bounceRate","ga:exitRate","ga:exits","ga:date","ga:pagePath","ga:pageTitle","ga:searchKeyword"},
+            "Behavior Overview": {"ga:pageviews","ga:uniquePageviews","ga:avgTimeOnPage","ga:bounceRate","ga:exitRate","ga:exits","ga:date","ga:pagePath","ga:pageTitle"},
             "Ecommerce Overview": {"ga:transactions","ga:transactionId","ga:campaign","ga:source","ga:medium","ga:keyword","ga:socialNetwork"}
         }
 
@@ -286,7 +286,7 @@ class TestGoogleAnalyticsStartDate(unittest.TestCase):
                 # TODO Verify the stream does not have duplicate records for any given day
 
         # Test by stream
-        missing_records_streams = {'Behavior Overview', 'Ecommerce Overview'}
+        missing_records_streams = {'Ecommerce Overview'}
         for stream in self.expected_sync_streams().difference(missing_records_streams):
             # Verify the 2nd sync got more records per stream than the 1st
             self.assertGreater(record_count_by_stream_2.get(stream, 0),

@@ -22,7 +22,6 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
     Test reports that reflect different compatibility states
     • Verify that data is not replicated for a report when incompatible metrics and
       dimensions are selected
-    • Verify that data is replicated for compatible metrics and dimensions???
     """
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
 
@@ -104,15 +103,10 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
                                      "ga:acquisitionTrafficChannel","ga:acquisitionSource","ga:acquisitionSourceMedium",
                                      "ga:acquisitionMedium"},
             "Behavior Overview": {"ga:pageviews","ga:uniquePageviews","ga:avgTimeOnPage","ga:bounceRate","ga:exitRate",
-                                  "ga:exits","ga:date","ga:pagePath","ga:pageTitle","ga:searchKeyword"},
+                                  "ga:exits","ga:date","ga:pagePath","ga:pageTitle"},
             "Ecommerce Overview": {"ga:transactions","ga:transactionId","ga:campaign","ga:source","ga:medium",
                                    "ga:keyword","ga:socialNetwork"},
-            "Test Report 1": set(), #{  # 10 metrics, 5 dim (max for custom report)
-                # "ga:sessions","ga:users","ga:bounces","ga:hits","ga:newUsers",\
-                # "ga:avgSessionDuration","ga:pagesPerSession","ga:bounceRate",\
-                # "ga:avgTimeOnPage","ga:sessionDuration","ga:deviceCategory",\
-                # "ga:eventAction","ga:date","ga:eventLabel","ga:eventCategory"
-                #}
+            "Test Report 1": set()
         }
 
     def get_properties(self):
@@ -192,8 +186,14 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
         # This should be validating the the PKs are written in each record
         record_count_by_stream = runner.examine_target_output_file(self, conn_id, self.expected_sync_streams(), self.expected_pks())
         replicated_row_count =  reduce(lambda accum,c : accum + c, record_count_by_stream.values(), 0)
-        self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(record_count_by_stream))
+        self.assertGreater(replicated_row_count, 0, msg="failed to replicate any data: {}".format(replicated_row_count))
         print("total replicated row count: {}".format(replicated_row_count))
+
+        # Verify we got data for expected streams
+        # BUG |
+        for stream in self.expected_sync_streams().difference({'Ecommerce Overview', 'Test Report 1'}):
+            self.assertGreater(record_count_by_stream.get(stream, 0), 0,
+                               msg="Did not replicate any data for {}".format(stream))
 
         # Verify we replicated the expected records at the max selection limit for metircs & dimensions
         synced_records = runner.get_records_from_target_output()
