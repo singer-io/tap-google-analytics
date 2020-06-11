@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 import hashlib
 import json
 import singer
@@ -82,6 +82,19 @@ def report_to_records(raw_report):
 
         yield record
 
+DATETIME_FORMATS = {
+    "ga:dateHour": '%Y%m%d%H',
+    "ga:dateHourMinute": '%Y%m%d%H%M',
+    "ga:date": '%Y%m%d',
+}
+
+def transform_datetimes(rec):
+    """ Datetimes have a compressed format, so this ensures they parse correctly. """
+    for field_name, value in rec.items():
+        if value and field_name in DATETIME_FORMATS:
+            rec[field_name] = datetime.strptime(value, DATETIME_FORMATS[field_name]).strftime(singer.utils.DATETIME_FMT)
+    return rec
+
 def sync_report(client, schema, report, start_date, end_date, state):
     """
     Run a sync, beginning from either the start_date or bookmarked date,
@@ -107,7 +120,9 @@ def sync_report(client, schema, report, start_date, end_date, state):
                 with Transformer() as transformer:
                     for rec in report_to_records(raw_report_response):
                         singer.write_record(report["name"],
-                                            transformer.transform(rec, schema),
+                                            transformer.transform(
+                                                transform_datetimes(rec),
+                                                schema),
                                             time_extracted=time_extracted)
                         counter.increment()
 
