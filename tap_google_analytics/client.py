@@ -13,7 +13,6 @@ import backoff
 
 LOGGER = singer.get_logger()
 
-
 def is_retryable_403(response):
     """
     The Google Analytics Management API and Metadata API define three types of 403s that are retryable due to quota limits.
