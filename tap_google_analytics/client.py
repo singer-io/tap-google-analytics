@@ -162,7 +162,7 @@ class Client():
 
         error_message = _is_json(response) and response.json().get("error", {}).get("message")
         if 400 <= response.status_code < 500 and error_message and not should_retry(response):
-            raise Exception("{} Client Error: Bad Request, details: {}".format(response.status_code, error_message))
+            raise Exception("{} Client Error, error message: {}".format(response.status_code, error_message))
 
         response.raise_for_status()
 
