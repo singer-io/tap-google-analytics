@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.5
+  * All 4xx errors that are not retryable should show error message [#29](https://github.com/singer-io/tap-google-analytics/pull/29)
+
 ## 0.4.4
   * Fixes error structure issue with retryable 403s introduced in 0.4.3 [#26](https://github.com/singer-io/tap-google-analytics/pull/26)
 
