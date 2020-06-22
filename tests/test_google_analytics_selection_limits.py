@@ -191,7 +191,7 @@ class TestGoogleAnalyticsSelectionLimitations(unittest.TestCase):
 
         # Verify we got data for expected streams
         # BUG | 'Test Report 1' | https://stitchdata.atlassian.net/browse/SRCE-3374
-        # BUG | 'Ecommerce Overview' | https://stitchdata.atlassian.net/browse/SRCE-3375
+        # 'Ecommerce Overview' | no test data exists for this report
         for stream in self.expected_sync_streams().difference({'Ecommerce Overview', 'Test Report 1'}):
             self.assertGreater(record_count_by_stream.get(stream, 0), 0,
                                msg="Did not replicate any data for {}".format(stream))
