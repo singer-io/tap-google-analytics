@@ -22,18 +22,7 @@ def is_retryable_403(response):
     https://developers.google.com/analytics/devguides/reporting/metadata/v3/errors
     """
     retryable_errors = {"userRateLimitExceeded", "rateLimitExceeded", "quotaExceeded"}
-    error_reasons = None
-    resp_json = response.json()
-    if isinstance(resp_json, dict):
-        error = resp_json.get('error', {})
-        if isinstance(error, dict):
-            errors = error.get('errors', [])
-            if isinstance(errors, list):
-                error_reasons = {error.get('reason') for error in errors}
-
-    if error_reasons is None:
-        # Unknown error structures should not be retried for now
-        return False
+    error_reasons = {error.get('reason') for error in response.json().get('error', {}).get('errors',[])}
 
     if any(error_reasons.intersection(retryable_errors)):
         return True
