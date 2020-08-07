@@ -139,11 +139,15 @@ class Client():
         self.expires_in = token_json['expires_in']
 
 
+    # For fewer requests, and reliability. This backoff tries less hard.
+    # Backoff Max Time: try 1 (wait 10) 2 (wait 100) 3 (wait 1000) 4
+    # Gives us waits of: (10 * 10 ^ 0), (10 * 10 ^ 1), (10 * 10 ^ 2)
     @backoff.on_exception(backoff.expo,
                           (requests.exceptions.RequestException),
-                          max_tries=10,
+                          max_tries=4,
+                          base=10,
                           giveup=should_giveup,
-                          factor=4,
+                          factor=10,
                           jitter=None)
     def _make_request(self, method, url, params=None, data=None):
         params = params or {}

@@ -3,6 +3,8 @@ import tap_tester.menagerie   as menagerie
 import tap_tester.runner      as runner
 import os
 import unittest
+from datetime import timedelta
+from singer import utils
 from functools import reduce
 
 class TestGoogleAnalyticsBasicSync(unittest.TestCase):
@@ -83,7 +85,7 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
 
     def get_properties(self):
         return {
-            'start_date' : '2020-03-01T00:00:00Z',
+            'start_date' : (utils.now() - timedelta(days=30)).strftime('%Y-%m-%dT00:00:00Z'),
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
             'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "report 1"}]
         }
