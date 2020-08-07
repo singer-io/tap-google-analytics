@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.6
+  * Make retries less aggressive to converse quota [#31](https://github.com/singer-io/tap-google-analytics/pull/31)
+
 ## 0.4.5
   * All 4xx errors that are not retryable should show error message [#29](https://github.com/singer-io/tap-google-analytics/pull/29)
 
