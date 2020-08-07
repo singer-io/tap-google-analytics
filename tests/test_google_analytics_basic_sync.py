@@ -84,6 +84,7 @@ class TestGoogleAnalyticsBasicSync(unittest.TestCase):
     def get_properties(self):
         return {
             'start_date' : '2020-03-01T00:00:00Z',
+            'end_date' : '2020-04-01T00:00:00Z',
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
             'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "report 1"}]
         }
