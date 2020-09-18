@@ -89,6 +89,16 @@ class Client():
         self.profile_lookup = {}
         self.__populate_profile_lookup()
 
+    def __transform_account_summaries_to_profile_lookup(self):
+        account_summaries = self.get_account_summaries_for_token()
+        new_lookup = {}
+        for account in account_summaries:
+            for web_property in account.get('webProperties', []):
+                for profile in web_property.get('profiles', []):
+                    new_lookup[profile['id']] = {"web_property_id": web_property['id'],
+                                                 "account_id": account['id']}
+        return new_lookup
+
     def __populate_profile_lookup(self):
         """
         Get all profiles available and associate them with their web property
@@ -195,6 +205,14 @@ class Client():
             with open(local_cubes_path, "r") as f:
                 cubes_json = json.load(f)
         return cubes_json
+
+    def get_account_summaries_for_token(self):
+        """
+        Return a list of accountSummaries (full account hierarchy that token
+        user has access to) to discover Goals and custom metrics/dimensions.
+        """
+        account_summaries_response = self.get('https://www.googleapis.com/analytics/v3/management/accountSummaries')
+        return account_summaries_response.json()['items']
 
     def get_accounts_for_token(self):
         """ Return a list of account IDs available to hte associated token. """
