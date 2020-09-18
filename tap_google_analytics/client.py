@@ -89,9 +89,6 @@ class Client():
         self.profile_lookup = {}
         self.__populate_profile_lookup()
 
-    def __transform_account_summaries_to_profile_lookup(self):
-        return new_lookup
-
     def __populate_profile_lookup(self):
         """
         Get all profiles available and associate them with their web property
