@@ -90,13 +90,6 @@ class Client():
         self.__populate_profile_lookup()
 
     def __transform_account_summaries_to_profile_lookup(self):
-        account_summaries = self.get_account_summaries_for_token()
-        new_lookup = {}
-        for account in account_summaries:
-            for web_property in account.get('webProperties', []):
-                for profile in web_property.get('profiles', []):
-                    new_lookup[profile['id']] = {"web_property_id": web_property['id'],
-                                                 "account_id": account['id']}
         return new_lookup
 
     def __populate_profile_lookup(self):
@@ -104,11 +97,12 @@ class Client():
         Get all profiles available and associate them with their web property
         and account IDs to be looked up later during discovery.
         """
-        for account_id in self.get_accounts_for_token():
-            for web_property_id in self.get_web_properties_for_account(account_id):
-                for profile_id in self.get_profiles_for_property(account_id, web_property_id):
-                    self.profile_lookup[profile_id] = {"web_property_id": web_property_id,
-                                                       "account_id": account_id}
+        account_summaries = self.get_account_summaries_for_token()
+        for account in account_summaries:
+            for web_property in account.get('webProperties', []):
+                for profile in web_property.get('profiles', []):
+                    self.profile_lookup[profile['id']] = {"web_property_id": web_property['id'],
+                                                          "account_id": account['id']}
 
     # Authentication and refresh
     def _ensure_access_token(self):
