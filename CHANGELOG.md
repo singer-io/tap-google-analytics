@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.7
+  * Make fewer request to the Management API for discovery [#32](https://github.com/singer-io/tap-google-analytics/pull/32)
+
 ## 0.4.6
   * Make retries less aggressive to conserve quota [#31](https://github.com/singer-io/tap-google-analytics/pull/31)
 
