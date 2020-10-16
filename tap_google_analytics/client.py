@@ -67,6 +67,22 @@ def _update_config_file(config, config_path):
         json.dump(config, config_file, indent=2)
 
 
+def is_cached_profile_lookup_valid(config):
+    # When cached_profile_lookup is not in config, the cache is invalid
+    if "cached_profile_lookup" not in config:
+        return False
+
+    # TODO: Support view_ids config string
+    view_ids = set(config.get("view_ids") or [config.get("view_id")])
+    cached_profile_lookup = json.loads(config["cached_profile_lookup"] or '{}')
+    # When view_ids are not all in cached_profile_lookup's top level keys, the cache is invalid
+    if len(view_ids - set(cached_profile_lookup.keys())) != 0:
+        return False
+
+    # cached_profile_lookup is valid
+    return True
+
+
 # pylint: disable=too-many-instance-attributes
 class Client():
     def __init__(self, config, config_path):
@@ -94,29 +110,13 @@ class Client():
         self._populate_profile_lookup(config, config_path)
 
 
-    def _is_cached_profile_lookup_valid(self, config):
-        # When cached_profile_lookup is not in config, the cache is invalid
-        if "cached_profile_lookup" not in config:
-            return False
-
-        # TODO: Support view_ids config string
-        view_ids = set(config.get("view_ids") or [config.get("view_id")])
-        cached_profile_lookup = json.loads(config["cached_profile_lookup"] or '{}')
-        # When view_ids are not all in cached_profile_lookup's top level keys, the cache is invalid
-        if len(view_ids - set(cached_profile_lookup.keys())) != 0:
-            return False
-
-        # cached_profile_lookup is valid
-        return True
-
-
     def _populate_profile_lookup(self, config, config_path):
         """
         Get all profiles available and associate them with their web property
         and account IDs to be looked up later during discovery.
         """
-        if self._is_cached_profile_lookup_valid(config):
-            LOGGER.info("Using cached profile_lookup. Will not check Account Summaries.")
+        if is_cached_profile_lookup_valid(config):
+            LOGGER.info("Using cached profile_lookup. Will not check Account Summaries API.")
             self.profile_lookup = json.loads(config["cached_profile_lookup"])
             return
 
