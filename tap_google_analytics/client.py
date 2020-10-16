@@ -99,12 +99,11 @@ class Client():
         if "cached_profile_lookup" not in config:
             return False
 
-        # When config's view_ids do not intersect with cached_profile_lookup's top level keys, the cache is invalid
         # TODO: Support view_ids config string
-        view_ids = config.get("view_ids") or config.get("view_id")
-        view_ids = {view_ids}
-        cached_profile_lookup = json.loads(config["cached_profile_lookup"])
-        if len(view_ids.intersection(set(cached_profile_lookup.keys()))) == 0:
+        view_ids = set(config.get("view_ids") or [config.get("view_id")])
+        cached_profile_lookup = json.loads(config["cached_profile_lookup"] or '{}')
+        # When view_ids are not all in cached_profile_lookup's top level keys, the cache is invalid
+        if len(view_ids - set(cached_profile_lookup.keys())) != 0:
             return False
 
         # cached_profile_lookup is valid
@@ -123,9 +122,13 @@ class Client():
 
         LOGGER.info("Cached profile_lookup does not exist or is invalid. Rebuilding.")
         account_summaries = self.get_account_summaries_for_token()
+        view_ids = set(config.get("view_ids") or [config.get("view_id")])
         for account in account_summaries:
             for web_property in account.get('webProperties', []):
                 for profile in web_property.get('profiles', []):
+                    # Only cache profile ids that are in our chosen view_ids
+                    if profile['id'] not in view_ids:
+                        continue
                     self.profile_lookup[profile['id']] = {"web_property_id": web_property['id'],
                                                           "account_id": account['id']}
 
