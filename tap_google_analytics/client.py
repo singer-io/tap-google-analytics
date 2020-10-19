@@ -62,10 +62,29 @@ def _is_json(response):
     except Exception:
         return False
 
+def _update_config_file(config, config_path):
+    with open(config_path, 'w') as config_file:
+        json.dump(config, config_file, indent=2)
+
+
+def is_cached_profile_lookup_valid(config):
+    # When cached_profile_lookup is not in config, the cache is invalid
+    if "cached_profile_lookup" not in config:
+        return False
+
+    view_ids = set(config.get("view_ids") or [config.get("view_id")])
+    cached_profile_lookup = json.loads(config["cached_profile_lookup"] or '{}')
+    # When view_ids are not all in cached_profile_lookup's top level keys, the cache is invalid
+    if len(view_ids - set(cached_profile_lookup.keys())) != 0:
+        return False
+
+    # cached_profile_lookup is valid
+    return True
+
 
 # pylint: disable=too-many-instance-attributes
 class Client():
-    def __init__(self, config):
+    def __init__(self, config, config_path):
         self.auth_method = config['auth_method']
         if self.auth_method == "oauth2":
             self.refresh_token = config["refresh_token"]
@@ -87,19 +106,34 @@ class Client():
             self.session.headers.update({"User-Agent": self.user_agent})
 
         self.profile_lookup = {}
-        self.__populate_profile_lookup()
+        self._populate_profile_lookup(config, config_path)
 
-    def __populate_profile_lookup(self):
+
+    def _populate_profile_lookup(self, config, config_path):
         """
         Get all profiles available and associate them with their web property
         and account IDs to be looked up later during discovery.
         """
+        if is_cached_profile_lookup_valid(config):
+            LOGGER.info("Using cached profile_lookup. Will not check Account Summaries API.")
+            self.profile_lookup = json.loads(config["cached_profile_lookup"])
+            return
+
+        LOGGER.info("Cached profile_lookup does not exist or is invalid. Rebuilding.")
         account_summaries = self.get_account_summaries_for_token()
+        view_ids = set(config.get("view_ids") or [config.get("view_id")])
         for account in account_summaries:
             for web_property in account.get('webProperties', []):
                 for profile in web_property.get('profiles', []):
+                    # Only cache profile ids that are in our chosen view_ids
+                    if profile['id'] not in view_ids:
+                        continue
                     self.profile_lookup[profile['id']] = {"web_property_id": web_property['id'],
                                                           "account_id": account['id']}
+
+        # After rebuilding the cache, write it back to config so it can be persisted
+        config['cached_profile_lookup'] = json.dumps(self.profile_lookup)
+        _update_config_file(config, config_path)
 
     # Authentication and refresh
     def _ensure_access_token(self):

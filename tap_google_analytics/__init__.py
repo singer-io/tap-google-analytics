@@ -154,7 +154,7 @@ def main():
     singer.utils.check_config(args.config, additional_config_keys)
 
     config = args.config
-    client = Client(config)
+    client = Client(config, args.config_path)
     catalog = args.catalog or Catalog([])
     state = args.state
 
