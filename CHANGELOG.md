@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+  * Cache Management API profile lookup [#34](https://github.com/singer-io/tap-google-analytics/pull/34)
+
 ## 0.4.7
   * Make fewer request to the Management API for discovery [#32](https://github.com/singer-io/tap-google-analytics/pull/32)
 
