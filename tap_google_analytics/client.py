@@ -72,7 +72,6 @@ def is_cached_profile_lookup_valid(config):
     if "cached_profile_lookup" not in config:
         return False
 
-    # TODO: Support view_ids config string
     view_ids = set(config.get("view_ids") or [config.get("view_id")])
     cached_profile_lookup = json.loads(config["cached_profile_lookup"] or '{}')
     # When view_ids are not all in cached_profile_lookup's top level keys, the cache is invalid
