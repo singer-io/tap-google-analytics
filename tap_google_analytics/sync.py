@@ -95,7 +95,7 @@ def transform_datetimes(rec):
             rec[field_name] = datetime.strptime(value, DATETIME_FORMATS[field_name]).strftime(singer.utils.DATETIME_FMT)
     return rec
 
-def sync_report(client, schema, report, start_date, end_date, state):
+def sync_report(client, schema, report, start_date, end_date, state, historically_syncing=False):
     """
     Run a sync, beginning from either the start_date or bookmarked date,
     requesting a report per day, until the last full day of data. (e.g.,
@@ -107,6 +107,8 @@ def sync_report(client, schema, report, start_date, end_date, state):
               "dimensions": dimensions}
     """
     LOGGER.info("Syncing %s for view_id %s", report['name'], report['profile_id'])
+
+    all_data_golden = True
     # TODO: Is it better to query by multiple days if `ga:date` is present?
     # - If so, we can optimize the calls here to generate date ranges and reduce request volume
     for report_date in generate_report_dates(start_date, end_date):
@@ -129,13 +131,20 @@ def sync_report(client, schema, report, start_date, end_date, state):
                 # - "golden" refers to data that will not change in future
                 #   requests, so we can use it as a bookmark
                 is_data_golden = raw_report_response["reports"][0]["data"].get("isDataGolden")
+                if historically_syncing:
+                    # Switch to regular bookmarking at first golden
+                    historically_syncing = not is_data_golden
+
                 # The assumption here is that today's data cannot be golden if yesterday's is also not golden
-                if is_data_golden:
+                if all_data_golden or historically_syncing:
                     singer.write_bookmark(state,
                                           report["id"],
                                           report['profile_id'],
                                           {'last_report_date': report_date.strftime("%Y-%m-%d")})
                     singer.write_state(state)
+                    if not is_data_golden:
+                        # Stop bookmarking on first "isDataGolden": False
+                        all_data_golden = False
                 else:
                     LOGGER.info("Did not detect that data was golden. Skipping writing bookmark.")
     LOGGER.info("Done syncing %s for view_id %s", report['name'], report['profile_id'])

@@ -5,20 +5,26 @@ from singer import utils
 import tap_google_analytics.sync
 from tap_google_analytics.sync import sync_report, generate_sdc_record_hash
 
-reports = {
-    utils.strptime_to_utc("2019-11-01"): [{"reports": [{"data": {"isDataGolden": True}}]}],
-    utils.strptime_to_utc("2019-11-02"): [{"reports": [{"data": {"isDataGolden": True}}]}],
-    utils.strptime_to_utc("2019-11-03"): [{"reports": [{"data": {}}]}],
-    utils.strptime_to_utc("2019-11-04"): [{"reports": [{"data": {"isDataGolden": True}}]}],
-}
+reports = None
 
 def get_mock_report(name, profile_id, report_date, metrics, dimensions):
     return reports[report_date]
 
 class TestIsDataGoldenBookmarking(unittest.TestCase):
     def setUp(self):
+        global reports
+        reports = {
+            utils.strptime_to_utc("2019-11-01"): [{"reports": [{"data": {"isDataGolden": True}}]}],
+            utils.strptime_to_utc("2019-11-02"): [{"reports": [{"data": {"isDataGolden": True}}]}],
+            utils.strptime_to_utc("2019-11-03"): [{"reports": [{"data": {}}]}],
+            utils.strptime_to_utc("2019-11-04"): [{"reports": [{"data": {"isDataGolden": True}}]}],
+        }
         self.client = MagicMock()
         self.client.get_report = MagicMock(side_effect=get_mock_report)
+
+    def tearDown(self):
+        global reports
+        reports = None
 
     @patch("tap_google_analytics.sync.report_to_records")
     @patch("singer.write_record")
@@ -49,6 +55,28 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
                     state)
         self.assertEqual({'bookmarks': {'123': {'12345': {'last_report_date': '2019-11-03'}}}}, state)
         self.assertEqual(self.client.get_report.call_count, 1)
+
+    @patch("tap_google_analytics.sync.report_to_records")
+    @patch("singer.write_record")
+    @patch("singer.write_state")
+    def test_historical_sync_writes_bookmarks_and_stops_at_first_non_golden(self, *args):
+        global reports
+        reports = {
+            utils.strptime_to_utc("2019-10-30"): [{"reports": [{"data": {"isDataGolden": True}}]}],
+            utils.strptime_to_utc("2019-10-31"): [{"reports": [{"data": {"isDataGolden": True}}]}],
+            **reports
+        }
+        state = {}
+        sync_report(self.client,
+                    {},
+                    {"id": "123", "name":"test_report", "profile_id": "12345", "metrics":[], "dimensions":[]},
+                    utils.strptime_to_utc("2019-10-30"),
+                    utils.strptime_to_utc("2019-11-04"),
+                    state,
+                    historically_syncing=True)
+        self.assertEqual({'bookmarks': {'123': {'12345': {'last_report_date': '2019-11-03'}}}}, state)
+        self.assertEqual(self.client.get_report.call_count, 6)
+
 
 class TestRecordHashing(unittest.TestCase):
     """
