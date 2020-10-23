@@ -100,7 +100,7 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
     @patch("tap_google_analytics.sync.report_to_records")
     @patch("singer.write_record")
     @patch("singer.write_state")
-    def test_historical_sync_interrupted_writes_bookmarks(self, *args):
+    def test_historical_sync_interrupted_does_not_write_bookmarks(self, *args):
         # We have observed that if there's no historical data, Google will
         # return a null isDataGolden field. This caused the tap to never
         # save properties. If a tap is interrupted during this time of null
@@ -125,7 +125,7 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
                         utils.strptime_to_utc("2019-11-02"),
                         state,
                         historically_syncing=True)
-        self.assertEqual({'bookmarks': {'123': {'12345': {'last_report_date': '2019-11-01'}}}}, state)
+        self.assertEqual({}, state)
         self.assertEqual(self.client.get_report.call_count, 4)
 
 

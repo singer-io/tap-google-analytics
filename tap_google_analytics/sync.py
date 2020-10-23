@@ -136,7 +136,7 @@ def sync_report(client, schema, report, start_date, end_date, state, historicall
                     historically_syncing = not is_data_golden
 
                 # The assumption here is that today's data cannot be golden if yesterday's is also not golden
-                if all_data_golden or historically_syncing:
+                if all_data_golden and not historically_syncing:
                     singer.write_bookmark(state,
                                           report["id"],
                                           report['profile_id'],
