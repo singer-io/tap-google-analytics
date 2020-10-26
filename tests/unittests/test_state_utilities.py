@@ -126,7 +126,7 @@ class TestGetStartDate(unittest.TestCase):
 
         actual = get_start_date(config, view_id, state, 'report1')
 
-        expected = datetime.datetime(2020, 3, 15, tzinfo=pytz.utc)
+        expected = (True, datetime.datetime(2020, 3, 15, tzinfo=pytz.utc))
 
         self.assertEqual(expected, actual)
 
@@ -147,7 +147,7 @@ class TestGetStartDate(unittest.TestCase):
 
         actual = get_start_date(config, view_id, state, 'report1')
 
-        expected = datetime.datetime(2020, 4, 1, tzinfo=pytz.utc)
+        expected = (False, datetime.datetime(2020, 4, 1, tzinfo=pytz.utc))
 
         self.assertEqual(expected, actual)
 
@@ -161,6 +161,6 @@ class TestGetStartDate(unittest.TestCase):
 
         actual = get_start_date(config, view_id, state, 'report1')
 
-        expected = datetime.datetime(2020, 3, 15, tzinfo=pytz.utc)
+        expected = (True, datetime.datetime(2020, 3, 15, tzinfo=pytz.utc))
 
         self.assertEqual(expected, actual)

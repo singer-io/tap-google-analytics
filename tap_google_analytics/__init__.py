@@ -35,11 +35,13 @@ def get_start_date(config, view_id, state, tap_stream_id):
     Returns a date bookmark in state for the given stream, or the
     `start_date` from config, if no bookmark exists.
     """
-    return utils.strptime_to_utc(get_bookmark(state,
-                                              tap_stream_id,
-                                              view_id,
-                                              default={}).get('last_report_date',
-                                                              config['start_date']))
+    start = get_bookmark(state,
+                         tap_stream_id,
+                         view_id,
+                         default={}).get('last_report_date',
+                                         config['start_date'])
+    is_historical_sync = start == config['start_date']
+    return is_historical_sync, utils.strptime_to_utc(start)
 
 def get_end_date(config):
     """
@@ -118,9 +120,9 @@ def do_sync(client, config, catalog, state):
             state['currently_syncing_view'] = report['profile_id']
             singer.write_state(state)
 
-            start_date = get_start_date(config, report['profile_id'], state, report['id'])
+            is_historical_sync, start_date = get_start_date(config, report['profile_id'], state, report['id'])
 
-            sync_report(client, schema, report, start_date, end_date, state)
+            sync_report(client, schema, report, start_date, end_date, state, is_historical_sync)
         state.pop('currently_syncing_view', None)
         singer.write_state(state)
     state = singer.set_currently_syncing(state, None)
