@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1
+  * Update bookmarking [#35](https://github.com/singer-io/tap-google-analytics/pull/35)
+    * change bookmarking strategy
+    * Add historical sync concept to bookmarking
+    * Make new test fail, and add interrupted test
+    * Fix broken test
+    * Change historical syncing to not save bookmarks, but not prevent bookmarks from being saved
+
 ## 0.5.0
   * Cache Management API profile lookup [#34](https://github.com/singer-io/tap-google-analytics/pull/34)
 
