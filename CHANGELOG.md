@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.0
+  * Releasing to GA
+
 ## 0.5.1
   * Update bookmarking [#35](https://github.com/singer-io/tap-google-analytics/pull/35)
     * change bookmarking strategy
