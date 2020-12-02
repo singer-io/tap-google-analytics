@@ -40,7 +40,7 @@ def get_error_reasons(response):
     error_reasons = set()
     if 'error' in response_json:
         error = response_json.get('error')
-        if 'errors' in error:
+        if isinstance(error, dict) and 'errors' in error:
             errors = error.get('errors')
             for sub_error in errors:
                 if 'reason' in sub_error:
@@ -49,14 +49,17 @@ def get_error_reasons(response):
                     error_reasons.add(sub_error.get('error_description'))
                 else:
                     error_reasons.add('reason or error_description missing from error, see full response {}'.format(response_json))
-        elif 'reason' in response:
-            error_reasons.add(response.get('reason'))
-        elif 'error_description' in response:
-            error_reasons.add(response.get('error_description'))
+        elif 'reason' in response_json:
+            error_reasons.add(response_json.get('reason'))
+        elif 'error_description' in response_json:
+            error_reasons.add(response_json.get('error_description'))
+        elif isinstance(error, str):
+            error_reasons.add(error)
         else:
             error_reasons.add('reason or error_description missing from error, see full response {}'.format(response_json))
 
     return error_reasons
+
 
 def should_giveup(e):
     """
