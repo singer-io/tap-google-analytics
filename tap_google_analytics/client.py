@@ -13,6 +13,7 @@ import backoff
 
 LOGGER = singer.get_logger()
 
+
 def is_retryable_403(response):
     """
     The Google Analytics Management API and Metadata API define three types of 403s that are retryable due to quota limits.
@@ -22,12 +23,40 @@ def is_retryable_403(response):
     https://developers.google.com/analytics/devguides/reporting/metadata/v3/errors
     """
     retryable_errors = {"userRateLimitExceeded", "rateLimitExceeded", "quotaExceeded"}
-    error_reasons = {error.get('reason') for error in response.json().get('error', {}).get('errors',[])}
+    error_reasons = get_error_reasons(response)
 
     if any(error_reasons.intersection(retryable_errors)):
         return True
 
     return False
+
+
+def get_error_reasons(response):
+    """
+    The google apis don't document the way the errors appear in their reponse json in the same way across different api endpoints and versions. This method defensively tries to grab the error reason(s) in all the ways response have shown to have them. Lastly if all those ways fail the error message just shows the full response json.
+    """
+    response_json = response.json()
+
+    error_reasons = set()
+    if 'error' in response_json:
+        error = response_json.get('error')
+        if 'errors' in error:
+            errors = error.get('errors')
+            for sub_error in errors:
+                if 'reason' in sub_error:
+                    error_reasons.add(sub_error.get('reason'))
+                elif 'error_description' in sub_error:
+                    error_reasons.add(sub_error.get('error_description'))
+                else:
+                    error_reasons.add('reason or error_description missing from error, see full response {}'.format(response_json))
+        elif 'reason' in response:
+            error_reasons.add(response.get('reason'))
+        elif 'error_description' in response:
+            error_reasons.add(response.get('error_description'))
+        else:
+            error_reasons.add('reason or error_description missing from error, see full response {}'.format(response_json))
+
+    return error_reasons
 
 def should_giveup(e):
     """
