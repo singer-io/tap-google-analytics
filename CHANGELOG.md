@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+  * Grabs error reason from 'reason', 'error_description', or falls back to full json response to ensure a good error message [#39](https://github.com/singer-io/tap-google-analytics/pull/39)
+  * add context user [#38](https://github.com/singer-io/tap-google-analytics/pull/38)
+
 ## 1.0.0
   * Releasing to GA
 
