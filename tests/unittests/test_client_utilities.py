@@ -208,7 +208,7 @@ class TestClientRetries(unittest.TestCase):
     @patch('time.sleep', return_value=None)
     def test_400_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status') as context_manager:
+        with self.assertRaisesRegex(Exception, 'Client Error, error message') as context_manager:
             client.post("400-INVALID_ARGUMENT")
 
         self.assertIsNotNone(context_manager)
@@ -221,7 +221,7 @@ class TestClientRetries(unittest.TestCase):
     @patch('time.sleep', return_value=None)
     def test_401_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status') as context_manager:
+        with self.assertRaisesRegex(Exception, 'Client Error, error message') as context_manager:
             client.post("401-UNAUTHENTICATED")
 
         self.assertIsNotNone(context_manager)
@@ -234,7 +234,7 @@ class TestClientRetries(unittest.TestCase):
     @patch('time.sleep', return_value=None)
     def test_403_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status') as context_manager:
+        with self.assertRaisesRegex(Exception, 'Client Error, error message') as context_manager:
             client.post("403-PERMISSION_DENIED")
 
         self.assertIsNotNone(context_manager)

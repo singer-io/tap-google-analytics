@@ -85,7 +85,15 @@ def should_giveup(e):
     return not do_retry
 
 def should_retry(response):
-    return response.status_code == 429 or is_retryable_403(response)
+    """
+    Ensure certain status code responses trigger retries
+    See documentation at https://developers.google.com/analytics/devguides/reporting/core/v4/errors
+    """
+    google_response_status_title = response.json().get("error", {}).get("status")
+
+    return (response.status_code == 429 or
+            is_retryable_403(response) or
+            (response.status_code == 503 and google_response_status_title is not None and google_response_status_title == 'UNAVAILABLE'))
 
 def _is_json(response):
     try:
