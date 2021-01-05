@@ -70,7 +70,8 @@ def should_giveup(e):
     """
     response = e.response
     if not _is_json(response):
-        # All of our retryable errors require a JSON response body
+        # Most retryable errors require a JSON response body
+        # If the response is not a json assume it's transient and should retry
         return False
 
     do_retry = should_retry(response)
@@ -89,11 +90,22 @@ def should_retry(response):
     Ensure certain status code responses trigger retries
     See documentation at https://developers.google.com/analytics/devguides/reporting/core/v4/errors
     """
-    google_response_status_title = response.json().get("error", {}).get("status")
+    if not _is_json(response):
+        # Most retryable errors require a JSON response body
+        # If the response is not a json assume it's transient and should retry
+        return True
+
+    response_error = response.json().get("error", {})
+
+    if isinstance(response_error, dict):
+        error_status_title = response_error.get("status", "")
+    else:
+        # Some responses put a string in the error instead, such as 401
+        error_status_title = ""
 
     return (response.status_code == 429 or
             is_retryable_403(response) or
-            (response.status_code == 503 and google_response_status_title is not None and google_response_status_title == 'UNAVAILABLE'))
+            (response.status_code == 503 and error_status_title == 'UNAVAILABLE'))
 
 def _is_json(response):
     try:
