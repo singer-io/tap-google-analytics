@@ -217,7 +217,7 @@ class Client():
                 "assertion": JWT().encode(message, signing_key, 'RS256')
             }
 
-        token_response = requests.post("https://oauth2.googleapis.com/token", data=payload)
+        token_response = self.session.post("https://oauth2.googleapis.com/token", json=payload)
 
         token_response.raise_for_status()
 
