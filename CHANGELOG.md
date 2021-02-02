@@ -9,6 +9,9 @@
 - Properly retry on 503 and add unit tests for all status codes that should retry under all conditions [\#43](https://github.com/singer-io/tap-google-analytics/pull/43) ([asaf-erlich](https://github.com/asaf-erlich))
 - move time off of utc midnight [\#41](https://github.com/singer-io/tap-google-analytics/pull/41) ([kspeer825](https://github.com/kspeer825))
 
+## 1.0.3
+  * Wraps access token request in a requests session [#45](https://github.com/singer-io/tap-google-analytics/pull/45)
+
 ## 1.0.1
   * Grabs error reason from 'reason', 'error_description', or falls back to full json response to ensure a good error message [#39](https://github.com/singer-io/tap-google-analytics/pull/39)
   * add context user [#38](https://github.com/singer-io/tap-google-analytics/pull/38)
