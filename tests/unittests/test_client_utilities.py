@@ -6,6 +6,10 @@ from unittest.mock import MagicMock
 
 from tap_google_analytics.client import Client
 
+import singer
+
+LOGGER = singer.get_logger()
+
 
 class MockResponse:
     def __init__(self, json_data, status_code):
@@ -189,5 +193,5 @@ class TestClientTCPKeepalive(unittest.TestCase):
 
     def test_keepalive_on_session_request(self):
         client = Client(self.config, self.config_path)
-
+        LOGGER.info("KWARGS: {}".format(self.request_spy.call_args.kwargs))
         self.assertEqual(self.request_spy.call_args.kwargs.get('headers', {}).get('Connection'), 'keep-alive')
