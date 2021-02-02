@@ -193,5 +193,5 @@ class TestClientTCPKeepalive(unittest.TestCase):
 
     def test_keepalive_on_session_request(self):
         client = Client(self.config, self.config_path)
-        LOGGER.info("KWARGS: {}".format(self.request_spy.call_args.kwargs))
+        LOGGER.info("KWARGS: {}".format(self.request_spy.call_args))
         self.assertEqual(self.request_spy.call_args.kwargs.get('headers', {}).get('Connection'), 'keep-alive')
