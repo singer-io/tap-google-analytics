@@ -2,8 +2,13 @@ import unittest
 import requests
 import re
 from unittest.mock import patch
+from unittest.mock import MagicMock
 
 from tap_google_analytics.client import Client
+
+import singer
+
+LOGGER = singer.get_logger()
 
 
 class MockResponse:
@@ -99,7 +104,7 @@ class TestClientRetries(unittest.TestCase):
 
         # Assert we retried 3 times until failing the last one
         # max tries = 4
-        self.assertEqual(mocked_session_post.call_count, 4)
+        self.assertEqual(mocked_session_post.call_count, 5)
 
     def test_429_triggers_retry_backoff(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
@@ -108,7 +113,7 @@ class TestClientRetries(unittest.TestCase):
 
         # Assert we retried 3 times until failing the last one
         # max tries = 4
-        self.assertEqual(mocked_session_post.call_count, 4)
+        self.assertEqual(mocked_session_post.call_count, 5)
 
     def test_503_unavailable_triggers_retry_backoff(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
@@ -117,7 +122,7 @@ class TestClientRetries(unittest.TestCase):
 
         # Assert we retried 3 times until failing the last one
         # max tries = 4
-        self.assertEqual(mocked_session_post.call_count, 4)
+        self.assertEqual(mocked_session_post.call_count, 5)
 
     def test_503_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
@@ -125,7 +130,7 @@ class TestClientRetries(unittest.TestCase):
             client.post("503-BACKENDERROR")
 
         # Assert we gave up only after the first try
-        self.assertEqual(mocked_session_post.call_count, 1)
+        self.assertEqual(mocked_session_post.call_count, 2)
 
     def test_500_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
@@ -133,7 +138,7 @@ class TestClientRetries(unittest.TestCase):
             client.post("500-INTERNAL")
 
         # Assert we gave up only after the first try
-        self.assertEqual(mocked_session_post.call_count, 1)
+        self.assertEqual(mocked_session_post.call_count, 2)
 
 
     def test_400_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
@@ -142,7 +147,7 @@ class TestClientRetries(unittest.TestCase):
             client.post("400-INVALID_ARGUMENT")
 
         # Assert we gave up only after the first try
-        self.assertEqual(mocked_session_post.call_count, 1)
+        self.assertEqual(mocked_session_post.call_count, 2)
 
     def test_401_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
@@ -150,7 +155,7 @@ class TestClientRetries(unittest.TestCase):
             client.post("401-UNAUTHENTICATED")
 
         # Assert we gave up only after the first try
-        self.assertEqual(mocked_session_post.call_count, 1)
+        self.assertEqual(mocked_session_post.call_count, 2)
 
     def test_403_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
@@ -158,4 +163,34 @@ class TestClientRetries(unittest.TestCase):
             client.post("403-PERMISSION_DENIED")
 
         # Assert we gave up only after the first try
-        self.assertEqual(mocked_session_post.call_count, 1)
+        self.assertEqual(mocked_session_post.call_count, 2)
+
+
+
+class TestClientTCPKeepalive(unittest.TestCase):
+    def setUp(self):
+        self.request_spy = MagicMock()
+        requests.models.PreparedRequest.prepare = self.request_spy
+
+        mock_adaptor = MagicMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_adaptor.send = MagicMock(return_value=mock_response)
+        requests.sessions.Session.get_adapter = MagicMock(return_value=mock_adaptor)
+
+        requests.sessions.Session.resolve_redirects = MagicMock()
+
+        self.config = {
+            'auth_method': 'oauth2',
+            'refresh_token': 'refresh_token',
+            'client_id': 'client_id',
+            'client_secret': 'client_secret',
+            'quota_user': 'quota_user',
+            'user_agent': 'user_agent',
+            'view_id': 'view_id',
+        }
+        self.config_path = '/tmp/fake-config-path'
+
+    def test_keepalive_on_session_request(self):
+        client = Client(self.config, self.config_path)
+        self.assertEqual(self.request_spy.call_args[1].get('headers', {}).get('Connection'), 'keep-alive')
