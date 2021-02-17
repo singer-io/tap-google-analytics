@@ -75,7 +75,7 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
                                 msg="There is NOT only one top level breadcrumb for {}".format(stream) + \
                                 "\nstream_properties | {}".format(stream_properties))
 
-                # BUG_1 | TODO see tmp_failures.txt
+                # BUG_1 | https://stitchdata.atlassian.net/browse/SRCE-4940
                 # verify replication key(s) match expectations
                 # self.assertSetEqual(
                 #     expected_replication_keys, actual_replication_keys
@@ -86,13 +86,13 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
                     expected_primary_keys, actual_primary_keys,
                 )
 
-                # BUG_2 | TODO see tmp_failures.txt
+                # BUG_1 | No replication method, or keys present.
                 # verify the replication method matches our expectations
                 # self.assertEqual(
                 #     expected_replication_method, actual_replication_method
                 # )
 
-                # BUG_2 | TODO see tmp_failures.txt
+                # BUG_1 | Missing keys cause this to fail as well.
                 # verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
                 # if actual_replication_keys:
                 #     self.assertEqual(self.INCREMENTAL, actual_replication_method)
