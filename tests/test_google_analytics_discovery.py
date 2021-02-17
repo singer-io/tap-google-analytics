@@ -98,11 +98,11 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
                 #     self.assertEqual(self.INCREMENTAL, actual_replication_method)
                 # else:
                 #     self.assertEqual(self.FULL_TABLE, actual_replication_method)
-;
+
                 # verify that primary keys and replication keys
                 # are given the inclusion of automatic in metadata.
                 self.assertSetEqual(expected_automatic_fields, actual_automatic_fields)
-                
+
                 # verify that all other fields have inclusion of available
                 # This assumes there are no unsupported fields for SaaS sources
                 self.assertTrue(
