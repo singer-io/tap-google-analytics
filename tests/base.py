@@ -423,12 +423,27 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         return stream not in standard_reports
 
     def custom_report_minimum_valid_field_selection(self, stream):
+        """
+        TODO So the when we uncomment the other dimensions we get no data...
+             but we are able to select them???
+        """
         field_selection_sets_by_report = {
             'report 1': {
-                "ga:sessions","ga:users","ga:bounces","ga:hits","ga:newUsers",
-                "ga:avgSessionDuration","ga:pagesPerSession","ga:bounceRate",
-                "ga:avgTimeOnPage","ga:sessionDuration","ga:deviceCategory",
-                "ga:eventAction","ga:date","ga:eventLabel","ga:eventCategory"
+                "ga:sessions",  # Metric
+                "ga:avgSessionDuration",  # Metric
+                "ga:bounceRate",  # Metric
+                "ga:users",  # Metric
+                "ga:pagesPerSession",  # Metric
+                "ga:avgTimeOnPage",  # Metric
+                "ga:bounces",  # Metric
+                "ga:hits",  # Metric
+                "ga:sessionDuration",  # Metric
+                "ga:newUsers",  # Metric
+                "ga:deviceCategory",  # Dimension
+                # "ga:eventAction",  # Dimension
+                "ga:date",  # Dimension
+                # "ga:eventLabel",  # Dimension
+                # "ga:eventCategory"  # Dimension
             },
         }
         return field_selection_sets_by_report.get(stream)

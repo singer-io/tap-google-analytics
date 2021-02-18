@@ -22,10 +22,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
 
         self.start_date = self.start_date_1
 
-        # expected_streams = self.expected_sync_streams()
-        expected_streams = self.expected_sync_streams().difference({
-            'report 1',  # TODO why aren't we getting data for this stream?
-        })
+        expected_streams = self.expected_sync_streams()
 
         ##########################################################################
         ### First Sync
@@ -65,7 +62,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
 
         # table and field selection
         test_catalogs_2_all_fields = [catalog for catalog in found_catalogs_2
-                                      if catalog.get('tap_stream_id') in expected_streams]
+                                      if catalog.get('stream_name') in expected_streams]
         self.perform_and_verify_table_and_field_selection(conn_id_2, test_catalogs_2_all_fields, select_all_fields=False)
 
         # run sync
