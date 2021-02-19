@@ -67,6 +67,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
     def expected_metadata(self):
         """The expected streams and metadata about the streams"""
+
         default_hashed_keys = {
             'web_property_id',
             'account_id',
@@ -293,8 +294,6 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             if is_field_metadata and inclusion_automatic_or_selected:
                 selected_fields.add(field['breadcrumb'][1])
         return selected_fields
-
-
 
     def select_all_streams_and_fields(self, conn_id, catalogs, select_all_fields: bool = True):
         """Select all streams and all fields within streams"""
