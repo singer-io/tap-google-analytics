@@ -23,6 +23,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     REPLICATION_KEYS = "valid-replication-keys"
     PRIMARY_KEYS = "table-key-properties"
     FOREIGN_KEYS = "table-foreign-key-properties"
+    HASHED_KEYS = "default-hashed-keys"
     REPLICATION_METHOD = "forced-replication-method"
     API_LIMIT = "max-row-limit"
     INCREMENTAL = "INCREMENTAL"
@@ -66,41 +67,55 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
     def expected_metadata(self):
         """The expected streams and metadata about the streams"""
+        default_hashed_keys = {
+            'web_property_id',
+            'account_id',
+            'profile_id',
+            'end_date'
+        }
+
         return {
             "report 1": {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"start_date"}
+                self.REPLICATION_KEYS: {"start_date"},
+                self.HASHED_KEYS: default_hashed_keys,
             },
             'Audience Overview': {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"start_date"}
+                self.REPLICATION_KEYS: {"start_date"},
+                self.HASHED_KEYS: default_hashed_keys,
             },
             'Audience Technology': {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"start_date"}
+                self.REPLICATION_KEYS: {"start_date"},
+                self.HASHED_KEYS: default_hashed_keys,
             },
             'Acquisition Overview': {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"start_date"}
+                self.REPLICATION_KEYS: {"start_date"},
+                self.HASHED_KEYS: default_hashed_keys,
             },
             'Ecommerce Overview': {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"start_date"}
+                self.REPLICATION_KEYS: {"start_date"},
+                self.HASHED_KEYS: default_hashed_keys,
             },
             'Audience Geo Location': {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"start_date"}
+                self.REPLICATION_KEYS: {"start_date"},
+                self.HASHED_KEYS: default_hashed_keys,
             },
             'Behavior Overview': {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
-                self.REPLICATION_KEYS: {"start_date"}
+                self.REPLICATION_KEYS: {"start_date"},
+                self.HASHED_KEYS: default_hashed_keys,
             }
         }
 
@@ -135,34 +150,22 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 for table, properties
                 in self.expected_metadata().items()}
 
-    def expected_foreign_keys(self):
+    def expected_hashed_keys(self):
         """
         return a dictionary with key of table name
-        and value as a set of foreign key fields
+        and value as a set of hashed key fields used to form the primary key
         """
-        return {table: properties.get(self.FOREIGN_KEYS, set())
+        return {table: properties.get(self.HASHED_KEYS, set())
                 for table, properties
                 in self.expected_metadata().items()}
 
-
     def expected_automatic_fields(self):
-        hashed_fields = self.expected_fields_used_to_hash_pk()  # TODO BUG?
         auto_fields = {}
         for k, v in self.expected_metadata().items():
             auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | v.get(self.REPLICATION_KEYS, set()) \
-                | hashed_fields
+                | v.get(self.HASHED_KEYS, set())
 
         return auto_fields
-
-    # TODO do you want this one or not?
-    # def expected_automatic_fields(self):
-    #     default_fields = self.expected_default_fields()
-    #     auto_fields = {}
-    #     for k, v in self.expected_metadata().items():
-    #         auto_fields[k] = v.get(self.PRIMARY_KEYS, set()) | v.get(self.REPLICATION_KEYS, set()) \
-    #             | default_fields.get(k, set())
-
-    #     return auto_fields
 
     def expected_replication_method(self):
         """return a dictionary with key of table name nd value of replication method"""
@@ -232,7 +235,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
         return sync_record_count
 
-    def perform_and_verify_table_and_field_selection(self,  # TODO clean this up and select_all_streams_andfields
+    def perform_and_verify_table_and_field_selection(self,  # TODO clean this up and select_all_streams_and_fields
                                                      conn_id,
                                                      test_catalogs,
                                                      select_all_fields=True):
@@ -355,31 +358,6 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     ### Tap Specific Methods
     ##########################################################################
 
-    # def expected_check_streams(self): # TODO do we need this?
-    #     """
-    #     We need to map sync streams to check streams since custom reports catalogs
-    #     have a differing values for tap-stream-id and tap-stream-name.
-    #     """
-    #     expected_custom_reports = {'report 1': 'a665732c-d18b-445c-89b2-5ca8928a7305',}
-    #     expected_reports = self.expected_sync_streams()
-    #     for stream_name, stream_id in expected_custom_reports.items():
-    #         expected_reports.remove(stream_name)
-    #         expected_reports.add(stream_id)
-
-    #     return expected_reports
-
-    def expected_fields_used_to_hash_pk(self):
-        """
-        In order to generate the primary key _sdc_record_hash used by reports the tap
-        grabs the fields listed below. They are given an inclusion of automatic.
-        """
-        return {
-            'web_property_id',
-            'account_id',
-            'profile_id',
-            'end_date'
-        }
-
     def expected_default_fields(self):
         return {
             "report 1" : set(),
@@ -448,7 +426,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         }
         return field_selection_sets_by_report.get(stream)
 
-    def custom_report_fields(self):  # TODO do we need this?
+    def custom_report_fields(self):  # TODO do we need this? Could grab from discovery in test
         return {
             'report 1': {
                 'ga:14dayUsers',
