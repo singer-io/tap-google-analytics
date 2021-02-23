@@ -1,6 +1,4 @@
 """Test tap discovery mode and metadata."""
-import re
-
 from tap_tester import menagerie, connections
 
 from base import GoogleAnalyticsBaseTest
@@ -45,11 +43,12 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
                                      if catalog["stream_name"] == stream]))
                 self.assertIsNotNone(catalog)
 
+                # TODO uncomment unused expectation variables when BUG_1 fixed
                 # collecting expected values
                 expected_primary_keys = self.expected_primary_keys()[stream]
-                expected_replication_keys = self.expected_replication_keys()[stream]
+                # expected_replication_keys = self.expected_replication_keys()[stream]
                 expected_automatic_fields = self.expected_automatic_fields()[stream]
-                expected_replication_method = self.expected_replication_method()[stream]
+                # expected_replication_method = self.expected_replication_method()[stream]
 
                 # collecting actual values...
                 schema_and_metadata = menagerie.get_annotated_schema(conn_id, catalog['stream_id'])
@@ -59,12 +58,13 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
                     stream_properties[0].get(
                         "metadata", {self.PRIMARY_KEYS: []}).get(self.PRIMARY_KEYS, [])
                 )
-                actual_replication_keys = set(
-                    stream_properties[0].get(
-                        "metadata", {self.REPLICATION_KEYS: []}).get(self.REPLICATION_KEYS, [])
-                )
-                actual_replication_method = stream_properties[0].get(
-                    "metadata", {self.REPLICATION_METHOD: None}).get(self.REPLICATION_METHOD)
+                # TODO uncomment unused expectation variables when BUG_1 fixed
+                # actual_replication_keys = set(
+                #     stream_properties[0].get(
+                #         "metadata", {self.REPLICATION_KEYS: []}).get(self.REPLICATION_KEYS, [])
+                # )
+                # actual_replication_method = stream_properties[0].get(
+                #     "metadata", {self.REPLICATION_METHOD: None}).get(self.REPLICATION_METHOD)
                 actual_automatic_fields = set(
                     item.get("breadcrumb", ["properties", None])[1] for item in metadata
                     if item.get("metadata").get("inclusion") == "automatic"

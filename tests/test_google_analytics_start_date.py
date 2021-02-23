@@ -1,5 +1,3 @@
-import os
-
 from tap_tester import connections, runner
 
 from base import GoogleAnalyticsBaseTest
