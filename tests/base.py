@@ -239,7 +239,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     def perform_and_verify_table_and_field_selection(self,  # TODO clean this up and select_all_streams_and_fields
                                                      conn_id,
                                                      test_catalogs,
-                                                     select_all_fields=True):
+                                                     select_all_fields=True,
+                                                     select_default_fields=False):
         """
         Perform table and field selection based off of the streams to select
         set and field selection parameters.
@@ -250,7 +251,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
         # Select all available fields or select no fields from all testable streams
         self.select_all_streams_and_fields(
-            conn_id=conn_id, catalogs=test_catalogs, select_all_fields=select_all_fields
+            conn_id=conn_id, catalogs=test_catalogs, select_all_fields=select_all_fields,
+            select_default_fields=select_default_fields
         )
 
         catalogs = menagerie.get_catalogs(conn_id)
@@ -295,7 +297,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 selected_fields.add(field['breadcrumb'][1])
         return selected_fields
 
-    def select_all_streams_and_fields(self, conn_id, catalogs, select_all_fields: bool = True):
+    def select_all_streams_and_fields(self, conn_id, catalogs, select_all_fields: bool = True,
+                                      select_default_fields: bool = False):
         """Select all streams and all fields within streams"""
 
         for catalog in catalogs:
@@ -307,7 +310,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 non_selected_properties = set(schema.get('annotated-schema', {}).get(
                     'properties', {}).keys())
 
-                if self.is_custom_report(catalog['stream_name']):
+                if select_default_fields and self.is_custom_report(catalog['stream_name']):
                     non_selected_properties = non_selected_properties.difference(
                         self.custom_report_minimum_valid_field_selection(catalog['stream_name'])
                     )
