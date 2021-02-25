@@ -239,7 +239,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     def perform_and_verify_table_and_field_selection(self,  # TODO clean this up and select_all_streams_and_fields
                                                      conn_id,
                                                      test_catalogs,
-                                                     select_all_fields=True):
+                                                     select_all_fields=True,
+                                                     select_default_fields=False):
         """
         Perform table and field selection based off of the streams to select
         set and field selection parameters.
@@ -250,7 +251,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
         # Select all available fields or select no fields from all testable streams
         self.select_all_streams_and_fields(
-            conn_id=conn_id, catalogs=test_catalogs, select_all_fields=select_all_fields
+            conn_id=conn_id, catalogs=test_catalogs, select_all_fields=select_all_fields,
+            select_default_fields=select_default_fields
         )
 
         catalogs = menagerie.get_catalogs(conn_id)
@@ -295,7 +297,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 selected_fields.add(field['breadcrumb'][1])
         return selected_fields
 
-    def select_all_streams_and_fields(self, conn_id, catalogs, select_all_fields: bool = True):
+    def select_all_streams_and_fields(self, conn_id, catalogs, select_all_fields: bool = True,
+                                      select_default_fields: bool = False):
         """Select all streams and all fields within streams"""
 
         for catalog in catalogs:
@@ -307,7 +310,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 non_selected_properties = set(schema.get('annotated-schema', {}).get(
                     'properties', {}).keys())
 
-                if self.is_custom_report(catalog['stream_name']):
+                if select_default_fields and self.is_custom_report(catalog['stream_name']):
                     non_selected_properties = non_selected_properties.difference(
                         self.custom_report_minimum_valid_field_selection(catalog['stream_name'])
                     )
@@ -357,7 +360,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     ### Tap Specific Methods
     ##########################################################################
 
-    def expected_default_fields(self):
+    @staticmethod
+    def expected_default_fields():
         return {
             "report 1" : set(),
             "Audience Overview": {
@@ -388,7 +392,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             }
         }
 
-    def is_custom_report(self, stream):
+    @staticmethod
+    def is_custom_report(stream):
         standard_reports = {
             "Audience Overview",
             "Audience Geo Location",
@@ -399,7 +404,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         }
         return stream not in standard_reports
 
-    def custom_report_minimum_valid_field_selection(self, stream):
+    @staticmethod
+    def custom_report_minimum_valid_field_selection(stream):
         """
         TODO So the when we uncomment the other dimensions we get no data...
              but we are able to select them???
@@ -425,7 +431,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         }
         return field_selection_sets_by_report.get(stream)
 
-    def custom_report_fields(self):  # TODO do we need this? Could grab from discovery in test
+    @staticmethod
+    def custom_report_fields():  # TODO do we need this? Could grab from discovery in test
         return {
             'report 1': {
                 'ga:14dayUsers',
