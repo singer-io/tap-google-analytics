@@ -10,6 +10,14 @@ from datetime import datetime as dt
 import singer
 from tap_tester import connections, menagerie, runner
 
+##########################################################################
+### TODO Test cases to think about Carding  Out
+##########################################################################
+# Verify the tap is handling is_golden data as expected
+# Verify the tap fails when invalid dimension/metric selections are made
+#
+##########################################################################
+
 
 class GoogleAnalyticsBaseTest(unittest.TestCase):
     """
@@ -25,13 +33,12 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     FOREIGN_KEYS = "table-foreign-key-properties"
     HASHED_KEYS = "default-hashed-keys"
     REPLICATION_METHOD = "forced-replication-method"
-    API_LIMIT = "max-row-limit"
     INCREMENTAL = "INCREMENTAL"
     FULL_TABLE = "FULL_TABLE"
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
-    BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00+00:00"
-    LOGGER = singer.get_logger()
+    BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00.000000Z"
 
+    LOGGER = singer.get_logger()
     start_date = ""
 
     @staticmethod
@@ -49,7 +56,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         return_value = {
             'start_date' : (dt.utcnow() - timedelta(days=30)).strftime(self.START_DATE_FORMAT),
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
-            'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "report 1"}]
+            'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "Test Report 1"}]
         }
         if original:
             return return_value
@@ -76,7 +83,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         }
 
         return {
-            "report 1": {
+            "Test Report 1": {
                 self.PRIMARY_KEYS: {"_sdc_record_hash"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.REPLICATION_KEYS: {"start_date"},
@@ -236,11 +243,12 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
         return sync_record_count
 
-    def perform_and_verify_table_and_field_selection(self,  # TODO clean this up and select_all_streams_and_fields
+    def perform_and_verify_table_and_field_selection(self,  # TODO implement kwargs for select_<whatever>_fields
                                                      conn_id,
                                                      test_catalogs,
                                                      select_all_fields=True,
-                                                     select_default_fields=False):
+                                                     select_default_fields=False,
+                                                     select_pagination_fields: bool = False):
         """
         Perform table and field selection based off of the streams to select
         set and field selection parameters.
@@ -251,8 +259,10 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
         # Select all available fields or select no fields from all testable streams
         self.select_all_streams_and_fields(
-            conn_id=conn_id, catalogs=test_catalogs, select_all_fields=select_all_fields,
-            select_default_fields=select_default_fields
+            conn_id=conn_id, catalogs=test_catalogs,
+            select_all_fields=select_all_fields,
+            select_default_fields=select_default_fields,
+            select_pagination_fields=select_pagination_fields
         )
 
         catalogs = menagerie.get_catalogs(conn_id)
@@ -277,12 +287,20 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                     print("\tValidating selection on {}.{}: {}".format(
                         cat['stream_name'], field, field_selected))
                     self.assertTrue(field_selected, msg="Field not selected.")
-            else:
-                if not self.is_custom_report(cat['stream_name']):
-                    # Verify only automatic fields are selected
-                    expected_automatic_fields = self.expected_automatic_fields().get(cat['stream_name'])
-                    selected_fields = self.get_selected_fields_from_metadata(catalog_entry['metadata'])
-                    self.assertEqual(expected_automatic_fields, selected_fields)
+            # elif select_default_fields or select_pagination_fields:
+            #     for field, field_props in catalog_entry.get('annotated-schema').get('properties').items():
+            #         field_selected = field_props.get('selected')
+            #         print("\tValidating selection on {}.{}: {}".format(
+            #             cat['stream_name'], field, field_selected)
+            #         )
+            #         # TODO conditional logic needed here to verify against field set
+            #         self.assertTrue(field_selected, msg="Field not selected.")
+            # else: # TODO PUT BACK!!
+            #     if not self.is_custom_report(cat['stream_name']):
+            #         # Verify only automatic fields are selected
+            #         expected_automatic_fields = self.expected_automatic_fields().get(cat['stream_name'])
+            #         selected_fields = self.get_selected_fields_from_metadata(catalog_entry['metadata'])
+            #         self.assertEqual(expected_automatic_fields, selected_fields)
 
     @staticmethod
     def get_selected_fields_from_metadata(metadata):
@@ -297,8 +315,10 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 selected_fields.add(field['breadcrumb'][1])
         return selected_fields
 
-    def select_all_streams_and_fields(self, conn_id, catalogs, select_all_fields: bool = True,
-                                      select_default_fields: bool = False):
+    def select_all_streams_and_fields(self, conn_id, catalogs,
+                                      select_all_fields: bool = True,
+                                      select_default_fields: bool = False,
+                                      select_pagination_fields: bool = False):
         """Select all streams and all fields within streams"""
 
         for catalog in catalogs:
@@ -312,7 +332,17 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
                 if select_default_fields and self.is_custom_report(catalog['stream_name']):
                     non_selected_properties = non_selected_properties.difference(
-                        self.custom_report_minimum_valid_field_selection(catalog['stream_name'])
+                        self.custom_report_minimum_valid_field_selection()[catalog['stream_name']]
+                    )
+                elif select_default_fields:
+                    non_selected_properties = non_selected_properties.difference(
+                        self.expected_default_fields()[catalog['stream_name']]
+                    )
+                elif select_pagination_fields:
+                    non_selected_properties = non_selected_properties.difference(
+                        self.expected_pagination_fields().get(catalog['stream_name'], set()).union(
+                            self.expected_hashed_keys()
+                        )
                     )
 
             connections.select_catalog_and_fields_via_metadata(
@@ -363,10 +393,10 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     @staticmethod
     def expected_default_fields():
         return {
-            "report 1" : set(),
+            "Test Report 1" : set(),
             "Audience Overview": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:sessionsPerUser", "ga:pageviews",
-                "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate", "ga:date"
+                "ga:pageviewsPerSession", "ga:avgsessionDuration", "ga:bounceRate", "ga:date",
             },
             "Audience Geo Location": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:pageviewsPerSession",
@@ -386,11 +416,36 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 "ga:pageviews", "ga:uniquePageviews", "ga:avgTimeOnPage", "ga:bounceRate",
                 "ga:exitRate", "ga:exits", "ga:date", "ga:pagePath", "ga:pageTitle"
             },
-            "Ecommerce Overview": {
+            "Ecommerce Overview": {  # TODO these are a bad combination missing Ecommerce Overview
                 "ga:transactions", "ga:transactionId", "ga:campaign", "ga:source", "ga:medium",
                 "ga:keyword", "ga:socialNetwork"
             }
         }
+
+    @staticmethod
+    def expected_pagination_fields():
+        return {
+            "Test Report 1" : set(),
+            "Audience Overview": {
+                "ga:users", "ga:newUsers", "ga:sessions", "ga:sessionsPerUser", "ga:pageviews",
+                "ga:pageviewsPerSession", "ga:sessionDuration", "ga:bounceRate", "ga:date",
+                # "ga:pageviews",
+            },
+            "Audience Geo Location": set(),
+            "Audience Technology": set(),
+            "Acquisition Overview": set(),
+            "Behavior Overview": set(),
+            "Ecommerce Overview": set(),
+        }
+
+    def custom_reports_names_to_ids(self):
+        report_definitions =self.get_properties()['report_definitions']
+        name_to_id_map = {
+            definition.get('name'): definition.get('id')
+            for definition in report_definitions
+        }
+
+        return name_to_id_map
 
     @staticmethod
     def is_custom_report(stream):
@@ -405,14 +460,14 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         return stream not in standard_reports
 
     @staticmethod
-    def custom_report_minimum_valid_field_selection(stream):
+    def custom_report_minimum_valid_field_selection():
         """
         TODO So the when we uncomment the other dimensions we get no data...
              but we are able to select them???
         """
-        field_selection_sets_by_report = {
-            'report 1': {
-                "ga:sessions",  # Metric
+        return {
+            'Test Report 1': {
+                #"ga:sessions",  # Metric
                 "ga:avgSessionDuration",  # Metric
                 "ga:bounceRate",  # Metric
                 "ga:users",  # Metric
@@ -429,12 +484,11 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 # "ga:eventCategory"  # Dimension
             },
         }
-        return field_selection_sets_by_report.get(stream)
 
     @staticmethod
     def custom_report_fields():  # TODO do we need this? Could grab from discovery in test
         return {
-            'report 1': {
+            'Test Report 1': {
                 'ga:14dayUsers',
                 'ga:1dayUsers',
                 'ga:28dayUsers',
