@@ -38,7 +38,7 @@ class MinimumSelectionTest(GoogleAnalyticsBaseTest):
         test_catalogs_automatic_fields = [catalog for catalog in found_catalogs
                                           if catalog.get('stream_name') in expected_streams]
         self.perform_and_verify_table_and_field_selection(
-            conn_id, test_catalogs_automatic_fields, select_all_fields=False,
+            conn_id, test_catalogs_automatic_fields, select_default_fields=False
         )
 
         # run initial sync

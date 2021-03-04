@@ -35,8 +35,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         # table and field selection
         test_catalogs_1_all_fields = [catalog for catalog in found_catalogs_1
                                       if catalog.get('stream_name') in expected_streams]
-        self.perform_and_verify_table_and_field_selection(conn_id_1, test_catalogs_1_all_fields, select_all_fields=False)
-        # TODO select more than the minimum
+        self.perform_and_verify_table_and_field_selection(conn_id_1, test_catalogs_1_all_fields)
 
         # run initial sync
         record_count_by_stream_1 = self.run_and_verify_sync(conn_id_1)
@@ -62,7 +61,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         # table and field selection
         test_catalogs_2_all_fields = [catalog for catalog in found_catalogs_2
                                       if catalog.get('stream_name') in expected_streams]
-        self.perform_and_verify_table_and_field_selection(conn_id_2, test_catalogs_2_all_fields, select_all_fields=False)
+        self.perform_and_verify_table_and_field_selection(conn_id_2, test_catalogs_2_all_fields)
 
         # run sync
         record_count_by_stream_2 = self.run_and_verify_sync(conn_id_2)

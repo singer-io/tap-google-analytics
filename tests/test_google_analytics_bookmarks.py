@@ -7,7 +7,7 @@ from base import GoogleAnalyticsBaseTest
 
 
 class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
-    SKIP_EM = {'Ecommerce Overview',}  # TODO get under test!!!!!!!!!
+    SKIP_STREAMS = {'Ecommerce Overview',}  # TODO get under test!!!!!!!!!
 
     @staticmethod
     def name():
@@ -35,7 +35,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
         If the test data is changed in the future this will break expectations for this test.
 
         """
-        expected_streams = self.expected_sync_streams() - self.SKIP_EM
+        expected_streams = self.expected_sync_streams() - self.SKIP_STREAMS
         custom_streams_name_to_id = self.custom_reports_names_to_ids()
         for stream in expected_streams:  # the tap saves state based on tap_stream_id
             if stream in custom_streams_name_to_id.keys():
@@ -64,7 +64,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
 
     def test_run(self):
 
-        expected_streams = self.expected_sync_streams() - self.SKIP_EM
+        expected_streams = self.expected_sync_streams() - self.SKIP_STREAMS
         expected_replication_keys = self.expected_replication_keys()
         expected_replication_methods = self.expected_replication_method()
 
@@ -84,7 +84,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
         # Select only the expected streams tables
         catalog_entries = [ce for ce in found_catalogs if ce['stream_name'] in expected_streams]
         self.perform_and_verify_table_and_field_selection(
-            conn_id, catalog_entries, select_all_fields=False, select_default_fields=True
+            conn_id, catalog_entries, select_default_fields=True
         )
 
         # Run a sync job using orchestrator
@@ -167,7 +167,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     self.assertEqual(len(first_sync_sequences), len(first_sync_sequences_set))
                     self.assertEqual(len(second_sync_sequences), len(second_sync_sequences_set))
 
-                    # Verify the sequence numbers are always increasing?
+                    # Verify the sequence numbers are always increasing
                     self.assertEqual(first_sync_sequences, sorted(first_sync_sequences))
                     self.assertEqual(second_sync_sequences, sorted(second_sync_sequences))
 
