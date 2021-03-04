@@ -416,7 +416,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 "ga:pageviews", "ga:uniquePageviews", "ga:avgTimeOnPage", "ga:bounceRate",
                 "ga:exitRate", "ga:exits", "ga:date", "ga:pagePath", "ga:pageTitle"
             },
-            "Ecommerce Overview": {  # TODO these are a bad combination missing Ecommerce Overview
+            "Ecommerce Overview": {  # TODO there's no data for this report b/c we don't have any purchases
                 "ga:transactions", "ga:transactionId", "ga:campaign", "ga:source", "ga:medium",
                 "ga:keyword", "ga:socialNetwork"
             }

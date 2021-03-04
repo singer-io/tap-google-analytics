@@ -136,6 +136,12 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                 second_sync_messages = [record.get('data') for record in
                                         second_sync_records.get(stream).get('messages')
                                         if record.get('action') == 'upsert']
+                first_sync_sequences = [record.get('sequence') for record in
+                                        first_sync_records.get(stream).get('messages')
+                                        if record.get('action') == 'upsert']
+                second_sync_sequences = [record.get('sequence') for record in
+                                         second_sync_records.get(stream).get('messages')
+                                         if record.get('action') == 'upsert']
                 first_bookmark_key_value = first_sync_bookmarks['bookmarks'][stream_id][self.account_id]
                 second_bookmark_key_value = second_sync_bookmarks['bookmarks'][stream_id][self.account_id]
 
@@ -150,10 +156,21 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     second_bookmark_value = self.state_comparison_format(second_bookmark_value_unformatted)
                     simulated_bookmark_value = new_states['bookmarks'][stream_id][self.account_id][bookmark_key]
 
-                    # TODO Implement an assertion around the sequence number
-                    #      Verify a sequence number is present?
-                    #      Verify a sequence number is unique?
-                    #      Verify the sequence numbers are always increasing?
+
+                    # Verify a sequence number is always present for a given record
+                    self.assertEqual(len(first_sync_sequences), len(first_sync_messages))
+                    self.assertEqual(len(second_sync_sequences), len(second_sync_messages))
+
+                    # Verify sequence numbers are unique
+                    first_sync_sequences_set = set(first_sync_sequences)
+                    second_sync_sequences_set = set(second_sync_sequences)
+                    self.assertEqual(len(first_sync_sequences), len(first_sync_sequences_set))
+                    self.assertEqual(len(second_sync_sequences), len(second_sync_sequences_set))
+
+                    # Verify the sequence numbers are always increasing?
+                    self.assertEqual(first_sync_sequences, sorted(first_sync_sequences))
+                    self.assertEqual(second_sync_sequences, sorted(second_sync_sequences))
+
 
                     # Verify the first sync sets a bookmark of the expected form
                     self.assertIsNotNone(first_bookmark_key_value)
@@ -162,6 +179,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     # Verify the second sync sets a bookmark of the expected form
                     self.assertIsNotNone(second_bookmark_key_value)
                     self.assertIsNotNone(second_bookmark_value)
+
 
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     self.assertEqual(second_bookmark_value, first_bookmark_value) # assumes no changes to data during test
@@ -191,6 +209,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                         first_bookmark_value, today_minus_golden_window,
                         msg="First sync bookmark was set prior to the expected date."
                     )
+
 
                     # Verify the number of records in the 2nd sync is less then the first
                     self.assertLess(second_sync_count, first_sync_count)
