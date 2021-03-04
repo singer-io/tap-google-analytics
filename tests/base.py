@@ -306,8 +306,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 selected_fields.add(field['breadcrumb'][1])
         return selected_fields
 
-    @staticmethod
-    def _select_streams_and_fields(conn_id, catalogs, select_default_fields, select_pagination_fields):
+    def _select_streams_and_fields(self, conn_id, catalogs, select_default_fields, select_pagination_fields):
         """Select all streams and all fields within streams"""
 
         for catalog in catalogs:
