@@ -4,6 +4,7 @@ from base import GoogleAnalyticsBaseTest
 
 
 class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
+    SKIP_STREAMS = {'Ecommerce Overview',}  # TODO get under test if possible
 
     start_date_1 = ""
     start_date_2 = ""
@@ -20,7 +21,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
 
         self.start_date = self.start_date_1
 
-        expected_streams = self.expected_sync_streams()
+        expected_streams = self.expected_sync_streams() - self.SKIP_STREAMS
 
         ##########################################################################
         ### First Sync
