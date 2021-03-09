@@ -7,14 +7,15 @@ from base import GoogleAnalyticsBaseTest
 
 
 class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
-    SKIP_STREAMS = {'Ecommerce Overview',}  # TODO get under test!!!!!!!!!
+    # TODO https://stitchdata.atlassian.net/browse/SRCE-5084
+    SKIP_STREAMS = {'Ecommerce Overview',}
 
     @staticmethod
     def name():
         return "tap_tester_google_analytics_bookmarks"
 
     @staticmethod
-    def state_comparison_format(date_str): # TODO can utc conversion be an issue when we look at 24 hour time bins?
+    def state_comparison_format(date_str):
         """
         Convert a saved bookmark value of the form '2020-08-25' to
         a string formatted datetime, in order to compare agianst json formatted datetime values.
@@ -95,10 +96,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
         ##########################################################################
         ### Update State Between Syncs
         ##########################################################################
-        # TODO should 'currently_syncing' be Null for the simulated state?
-        #     Should we manually set it to a stream?
-        #     ie.
-        #         INFO State update: changing currently_syncing from "Audience Geo Location" to "Audience Technology"
+
         first_sync_currently_syncing = first_sync_bookmarks.get('currently_syncing')
         new_states = {'bookmarks': dict(),
                       'currently_syncing': first_sync_currently_syncing}
@@ -149,7 +147,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
 
                     # collect information specific to incremental streams from syncs 1 & 2
                     replication_key = next(iter(expected_replication_keys[stream]))
-                    bookmark_key = "last_report_date" # TODO | BUG why not just use the replication key here?
+                    bookmark_key = "last_report_date"
                     first_bookmark_value_unformatted = first_bookmark_key_value.get(bookmark_key)
                     second_bookmark_value_unformatted = second_bookmark_key_value.get(bookmark_key)
                     first_bookmark_value = self.state_comparison_format(first_bookmark_value_unformatted)

@@ -4,7 +4,8 @@ from base import GoogleAnalyticsBaseTest
 
 
 class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
-    SKIP_STREAMS = {'Ecommerce Overview',}  # TODO get under test if possible
+    # TODO https://stitchdata.atlassian.net/browse/SRCE-5084
+    SKIP_STREAMS = {'Ecommerce Overview',}
 
     start_date_1 = ""
     start_date_2 = ""
