@@ -4,7 +4,8 @@ from base import GoogleAnalyticsBaseTest
 
 
 class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
-    SKIP_STREAMS = {'Ecommerce Overview',}  # TODO get under test if possible
+    # TODO https://stitchdata.atlassian.net/browse/SRCE-5084
+    SKIP_STREAMS = {'Ecommerce Overview',}
 
     start_date_1 = ""
     start_date_2 = ""
@@ -120,5 +121,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 # of records replicated in sync 2
                 self.assertGreater(record_count_sync_1, record_count_sync_2)
 
+                # TODO If this proves to be unstable, rework assertion to exclude records that are not golden
+                #      ie. records from the past 2 days.
                 # Verify the records replicated in sync 2 were also replicated in sync 1
                 self.assertTrue(primary_keys_sync_2.issubset(primary_keys_sync_1))
