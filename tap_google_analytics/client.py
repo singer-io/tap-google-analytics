@@ -273,14 +273,7 @@ class Client():
         return metadata_response.json()
 
     def get_raw_cubes(self):
-        try:
-            cubes_response = self.get("https://ga-dev-tools.appspot.com/ga_cubes.json")
-            cubes_response.raise_for_status()
-            cubes_json = cubes_response.json()
-        except Exception as ex:
-            LOGGER.warning("Error fetching raw cubes, falling back to local copy. Exception message: %s", ex)
-            cubes_json = json.loads(pkgutil.get_data(__package__, "ga_cubes.json"))
-        return cubes_json
+        return json.loads(pkgutil.get_data(__package__, "ga_cubes.json"))
 
     def get_account_summaries_for_token(self):
         """
