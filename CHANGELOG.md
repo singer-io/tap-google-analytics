@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.5
+  * When loading a file via `pkgutil` it must be decoded from bytes [#57](https://github.com/singer-io/tap-google-analytics/pull/56)
+
 ## 1.0.4
   * Fix inclusion of `ga_cubes.json` and remove dynamic pulling of the file for reliability [#56](https://github.com/singer-io/tap-google-analytics/pull/56)
 
