@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.4
+  * Fix inclusion of `ga_cubes.json` and remove dynamic pulling of the file for reliability [#56](https://github.com/singer-io/tap-google-analytics/pull/56)
+
 ## [v1.0.2](https://github.com/singer-io/tap-google-analytics/tree/v1.0.2) (2021-01-05)
 
 [Full Changelog](https://github.com/singer-io/tap-google-analytics/compare/v1.0.1...v1.0.2)
