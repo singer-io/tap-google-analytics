@@ -1,5 +1,6 @@
 from datetime import timedelta
 import json
+import pkgutil
 import math
 import os
 from jwt import (
@@ -278,9 +279,7 @@ class Client():
             cubes_json = cubes_response.json()
         except Exception as ex:
             LOGGER.warning("Error fetching raw cubes, falling back to local copy. Exception message: %s", ex)
-            local_cubes_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ga_cubes.json")
-            with open(local_cubes_path, "r") as f:
-                cubes_json = json.load(f)
+            cubes_json = json.loads(pkgutil.get_data(__package__, "ga_cubes.json"))
         return cubes_json
 
     def get_account_summaries_for_token(self):
