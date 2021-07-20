@@ -2,7 +2,6 @@ from datetime import timedelta
 import json
 import pkgutil
 import math
-import os
 from jwt import (
     JWT,
     jwk_from_pem,
@@ -272,7 +271,7 @@ class Client():
         metadata_response = self.get("https://www.googleapis.com/analytics/v3/metadata/{reportType}/columns".format(reportType="ga"))
         return metadata_response.json()
 
-    def get_raw_cubes(self):
+    def get_raw_cubes(self): # pylint: disable=no-self-use
         return json.loads(pkgutil.get_data(__package__, "ga_cubes.json"))
 
     def get_account_summaries_for_token(self):
