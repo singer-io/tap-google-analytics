@@ -272,7 +272,7 @@ class Client():
         return metadata_response.json()
 
     def get_raw_cubes(self): # pylint: disable=no-self-use
-        return json.loads(pkgutil.get_data(__package__, "ga_cubes.json"))
+        return json.loads(pkgutil.get_data(__package__, "ga_cubes.json").decode('utf-8'))
 
     def get_account_summaries_for_token(self):
         """
