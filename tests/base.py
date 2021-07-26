@@ -31,7 +31,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     INCREMENTAL = "INCREMENTAL"
     FULL_TABLE = "FULL_TABLE"
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
-    BOOKMARK_COMPARISON_FORMAT = "%Y-%m-%dT00:00:00.000000Z"
+    REPLICATION_KEY_FORMAT = "%Y-%m-%dT00:00:00.000000Z"
 
     start_date = ""
 
@@ -356,10 +356,10 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
         except ValueError:
             try:
-                date_stripped = dt.strptime(dtime, self.BOOKMARK_COMPARISON_FORMAT)
+                date_stripped = dt.strptime(dtime, self.REPLICATION_KEY_FORMAT)
                 return_date = date_stripped + timedelta(days=days)
 
-                return dt.strftime(return_date, self.BOOKMARK_COMPARISON_FORMAT)
+                return dt.strftime(return_date, self.REPLICATION_KEY_FORMAT)
 
             except ValueError:
                 return Exception("Datetime object is not of the format: {}".format(self.START_DATE_FORMAT))

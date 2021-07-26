@@ -69,7 +69,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
         expected_replication_keys = self.expected_replication_keys()
         expected_replication_methods = self.expected_replication_method()
 
-        today = datetime.datetime.utcnow().strftime(self.BOOKMARK_COMPARISON_FORMAT)
+        today = datetime.datetime.utcnow().strftime(self.REPLICATION_KEY_FORMAT)
         self.account_id = self.get_properties()['view_id']
         custom_streams_name_to_id = self.custom_reports_names_to_ids()
 
@@ -169,7 +169,6 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     self.assertEqual(first_sync_sequences, sorted(first_sync_sequences))
                     self.assertEqual(second_sync_sequences, sorted(second_sync_sequences))
 
-
                     # Verify the first sync sets a bookmark of the expected form
                     self.assertIsNotNone(first_bookmark_key_value)
                     self.assertIsNotNone(first_bookmark_value)
@@ -178,22 +177,28 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     self.assertIsNotNone(second_bookmark_key_value)
                     self.assertIsNotNone(second_bookmark_value)
 
-
                     # Verify the second sync bookmark is Equal to the first sync bookmark
                     self.assertEqual(second_bookmark_value, first_bookmark_value) # assumes no changes to data during test
 
+                    # Verify the records are orderd by repilcation key for sync 1
+                    first_replication_values = [record[replication_key] for record in first_sync_messages]
+                    first_replication_values_sorted = sorted(first_replication_values)
+                    self.assertEqual(first_replication_values_sorted, first_replication_values)
+
+                    # Verify the records are orderd by repilcation key for sync 2
+                    second_replication_values = [record[replication_key] for record in second_sync_messages]
+                    second_replication_values_sorted = sorted(second_replication_values)
+                    self.assertEqual(second_replication_values_sorted, second_replication_values)
+
                     # Verify the second sync records respect the previous (simulated) bookmark value
-                    self.assertTrue(all([record[replication_key] >= simulated_bookmark_value
-                                         for record in second_sync_messages]))
+                    for record in second_sync_messages:
+                        with self.subTest(record=record):
+                            self.assertGreaterEqual(record[replication_key], simulated_bookmark_value)
 
                     # Verify today's date is the max replication-key value for the second sync
-                    self.assertTrue(all([record[replication_key] <= today
-                                         for record in second_sync_messages]))
                     self.assertEqual(second_sync_messages[-1][replication_key], today)
 
                     # Verify today's date is the max replication-key value for the first sync
-                    self.assertTrue(all([record[replication_key] <= today
-                                         for record in first_sync_messages]))
                     self.assertEqual(first_sync_messages[-1][replication_key], today)
 
                     # NB: We bookmark based on the last date where data "is golden" (unchanging), but will
