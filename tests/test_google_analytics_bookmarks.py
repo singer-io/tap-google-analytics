@@ -98,7 +98,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
         ##########################################################################
 
         first_sync_currently_syncing = first_sync_bookmarks.get('currently_syncing')
-        new_states = {'bookmarks': dict(),
+        new_states = {'bookmarks': {},
                       'currently_syncing': first_sync_currently_syncing}
         simulated_states = self.calculated_states_by_stream(first_sync_bookmarks)
         for stream, new_state in simulated_states.items():

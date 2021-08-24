@@ -115,7 +115,7 @@ def _is_json(response):
         return False
 
 def _update_config_file(config, config_path):
-    with open(config_path, 'w') as config_file:
+    with open(config_path, 'w', encoding='utf8') as config_file:
         json.dump(config, config_file, indent=2)
 
 
