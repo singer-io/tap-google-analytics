@@ -16,10 +16,12 @@ setup(
         "jwt==0.6.1"
     ],
     extras_require={
-        'dev': [
-            'ipdb==0.11',
+        'test': [
             'pylint',
             'nose'
+        ],
+        'dev': [
+            'ipdb',
         ]
     },
     entry_points="""
