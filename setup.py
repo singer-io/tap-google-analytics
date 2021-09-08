@@ -17,7 +17,7 @@ setup(
     ],
     extras_require={
         'test': [
-            'pylint',
+            'pylint==2.10.2',
             'nose'
         ],
         'dev': [
