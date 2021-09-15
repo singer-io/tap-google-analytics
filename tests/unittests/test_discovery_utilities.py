@@ -204,15 +204,6 @@ class TestTypesToSchema(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
-
-        actual = types_to_schema(['CURRENCY', 'TIME', 'INTEGER'], 'ga:testField')
-
-        expected = {'anyOf': [{'type': ['integer', 'null']},
-                              {'type': ['number', 'null']},
-                              {'type': ['string', 'null']}]}
-
-        self.assertEqual(expected, actual)
-
     def test_multiple_types_with_duplicates_returns_no_duplicates(self):
         actual = types_to_schema(['CURRENCY', 'PERCENT', 'INTEGER'], 'ga:testField')
 
