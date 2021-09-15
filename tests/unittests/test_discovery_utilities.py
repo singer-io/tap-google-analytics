@@ -198,7 +198,16 @@ class TestTypesToSchema(unittest.TestCase):
         # CURRENCY = number, TIME = string, INTEGER = integer
         actual = types_to_schema(['CURRENCY', 'TIME', 'INTEGER'], 'ga:testField')
 
-        expected = {'anyOf': [{'type': ['integer', 'string', 'null']},
+        expected = {'anyOf': [{'type': ['integer', 'null']},
+                              {'type': ['number', 'null']},
+                              {'type': ['string', 'null']}]}
+
+        self.assertEqual(expected, actual)
+
+
+        actual = types_to_schema(['CURRENCY', 'TIME', 'INTEGER'], 'ga:testField')
+
+        expected = {'anyOf': [{'type': ['integer', 'null']},
                               {'type': ['number', 'null']},
                               {'type': ['string', 'null']}]}
 
@@ -207,7 +216,14 @@ class TestTypesToSchema(unittest.TestCase):
     def test_multiple_types_with_duplicates_returns_no_duplicates(self):
         actual = types_to_schema(['CURRENCY', 'PERCENT', 'INTEGER'], 'ga:testField')
 
-        expected = {'anyOf': [{'type': ['integer', 'string', 'null']},
+        expected = {'anyOf': [{'type': ['integer', 'null']},
                               {'type': ['number', 'null']}]}
+
+        self.assertEqual(expected, actual)
+
+    def test_integer_override_schema_includes_string_fallback(self):
+        actual = types_to_schema(['INTEGER'], 'ga:subContinentCode')
+
+        expected = {'type': ['integer', 'string', 'null']}
 
         self.assertEqual(expected, actual)
