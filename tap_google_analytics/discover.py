@@ -54,7 +54,9 @@ def type_to_schema(ga_type, field_id):
         return {"type": ["number", "null"]}
     elif ga_type == 'TIME':
         return {"type": ["string", "null"]}
-    elif ga_type == 'INTEGER' or field_id in integer_field_overrides:
+    elif field_id in integer_field_overrides:
+        return {"type": ["integer", "string", "null"]}
+    elif ga_type == 'INTEGER':
         return {"type": ["integer", "null"]}
     elif ga_type == 'FLOAT' or field_id in float_field_overrides:
         return {"type": ["number", "null"]}

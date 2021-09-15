@@ -211,3 +211,10 @@ class TestTypesToSchema(unittest.TestCase):
                               {'type': ['number', 'null']}]}
 
         self.assertEqual(expected, actual)
+
+    def test_integer_override_schema_includes_string_fallback(self):
+        actual = types_to_schema(['INTEGER'], 'ga:subContinentCode')
+
+        expected = {'type': ['integer', 'string', 'null']}
+
+        self.assertEqual(expected, actual)
