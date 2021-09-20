@@ -23,7 +23,8 @@ jobs:
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
             source dev_env.sh
             # BUG | https://jira.talendforge.org/browse/TDL-15395
-            pylint tap_google_analytics --disable '{$PYLINT_DISABLE_LIST},line-too-long, fixme, missing-module-docstring, missing-function-docstring, too-many-locals, invalid-name, broad-except, missing-class-docstring, too-many-arguments, no-else-return'
+            echo "skipping $PYLINT_DISABLE_LIST"
+            pylint tap_google_analytics --disable '$PYLINT_DISABLE_LIST,line-too-long, fixme, missing-module-docstring, missing-function-docstring, too-many-locals, invalid-name, broad-except, missing-class-docstring, too-many-arguments, no-else-return'
       - run:
           name: 'Unit Tests'
           command: |
