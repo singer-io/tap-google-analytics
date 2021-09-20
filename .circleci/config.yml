@@ -18,8 +18,10 @@ jobs:
       - run:
           name: 'pylint'
           command: |
+            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
+            source dev_env.sh
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
-            pylint tap_google_analytics --disable '{$PYLINT_DISABLE_LIST},line-too-long, fixme, missing-module-docstring , too-many-locals, invalid-name, broad-except, too-many-arguments, no-else-return,missing-function-docstring,missing-class-docstring'
+            pylint tap_google_analytics --disable '{$PYLINT_DISABLE_LIST}'
       - run:
           name: 'Unit Tests'
           command: |
