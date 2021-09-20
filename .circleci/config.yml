@@ -21,7 +21,6 @@ jobs:
           command: |
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
             source dev_env.sh
-            # BUG | https://jira.talendforge.org/browse/TDL-15395
             echo "skipping $PYLINT_DISABLE_LIST"
             pylint tap_google_analytics --disable "$PYLINT_DISABLE_LIST"
       - run:
