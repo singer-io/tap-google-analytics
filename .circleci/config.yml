@@ -19,7 +19,7 @@ jobs:
           name: 'pylint'
           command: |
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
-            pylint tap_google_analytics --disable '{$PYLINT_DISABLE_LIST},line-too-long, fixme, missing-module-docstring , too-many-locals, invalid-name, broad-except, too-many-arguments, no-else-return,missing-function-docstring'
+            pylint tap_google_analytics --disable '{$PYLINT_DISABLE_LIST},line-too-long, fixme, missing-module-docstring , too-many-locals, invalid-name, broad-except, too-many-arguments, no-else-return,missing-function-docstring,missing-class-docstring'
       - run:
           name: 'Unit Tests'
           command: |
