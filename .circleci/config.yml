@@ -12,7 +12,6 @@ jobs:
           name: 'Setup virtual env'
           command: |
             aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
-            source dev_env.sh
             python3 -mvenv /usr/local/share/virtualenvs/tap-google-analytics
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
             pip install -U pip setuptools
