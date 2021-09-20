@@ -23,7 +23,7 @@ jobs:
             source dev_env.sh
             # BUG | https://jira.talendforge.org/browse/TDL-15395
             echo "skipping $PYLINT_DISABLE_LIST"
-            pylint tap_google_analytics --disable '$PYLINT_DISABLE_LIST,line-too-long, fixme, missing-module-docstring, missing-function-docstring, too-many-locals, invalid-name, broad-except, missing-class-docstring, too-many-arguments, no-else-return'
+            pylint tap_google_analytics --disable "$PYLINT_DISABLE_LIST"
       - run:
           name: 'Unit Tests'
           command: |
