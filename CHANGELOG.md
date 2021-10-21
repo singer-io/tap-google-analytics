@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1
+  * Add Request Timeout Option
+
 ## 1.1.0
   * Add a string fallback schema to integer override fields [#61](https://github.com/singer-io/tap-google-analytics/pull/61)
 
