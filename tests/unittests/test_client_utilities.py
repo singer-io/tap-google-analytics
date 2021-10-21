@@ -10,6 +10,7 @@ import singer
 
 LOGGER = singer.get_logger()
 
+DEFAULT_TIMEOUT = 300
 
 class MockResponse:
     def __init__(self, json_data, status_code):
@@ -28,11 +29,11 @@ class MockResponse:
         else:
             return None
 
-def mocked_post_with_self(self, url, headers=None, params=None, json=None, timeout=300):
+def mocked_post_with_self(self, url, headers=None, params=None, json=None, timeout=DEFAULT_TIMEOUT):
     return mocked_post(url, headers=headers, params=params, json=json)
 
 URL_PATTERN = re.compile(r'^(?P<status_code>\d+)-(?P<status_title>[A-Z_]+)$')
-def mocked_post(url, headers=None, params=None, json=None, data=None, timeout=300):
+def mocked_post(url, headers=None, params=None, json=None, data=None, timeout=DEFAULT_TIMEOUT):
     if url == "https://oauth2.googleapis.com/token":
         return MockResponse(
             {
@@ -64,7 +65,7 @@ def mocked_post(url, headers=None, params=None, json=None, data=None, timeout=30
         "[url={}][headers={}][params={}][json={}][data={}]".format(url, headers, params, json, data)
     )
 
-def mocked_request(self, method, url, headers=None, params=None, timeout=300):
+def mocked_request(self, method, url, headers=None, params=None, timeout=DEFAULT_TIMEOUT):
     if method == 'GET' and url == "https://www.googleapis.com/analytics/v3/management/accountSummaries":
         return MockResponse(
             {
