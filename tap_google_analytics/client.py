@@ -13,6 +13,7 @@ import backoff
 
 LOGGER = singer.get_logger()
 
+REQUEST_TIMEOUT = 300
 
 def is_retryable_403(response):
     """
@@ -150,6 +151,7 @@ class Client():
         self.expires_in = 0
         self.last_refreshed = None
 
+        self.request_timeout = config.get("request_timeout", REQUEST_TIMEOUT)
         self.quota_user = config.get("quota_user")
         self.user_agent = config.get("user_agent")
 
@@ -217,7 +219,7 @@ class Client():
                 "assertion": JWT().encode(message, signing_key, 'RS256')
             }
 
-        token_response = self.session.post("https://oauth2.googleapis.com/token", json=payload)
+        token_response = self.session.post("https://oauth2.googleapis.com/token", json=payload, timeout=self.request_timeout)
 
         token_response.raise_for_status()
 
@@ -229,6 +231,9 @@ class Client():
     # For fewer requests, and reliability. This backoff tries less hard.
     # Backoff Max Time: try 1 (wait 10) 2 (wait 100) 3 (wait 1000) 4
     # Gives us waits of: (10 * 10 ^ 0), (10 * 10 ^ 1), (10 * 10 ^ 2)
+    #
+    # backoff for Timeout exception is already included in "requests.exceptions.RequestException"
+    # as it is the parent class of "Timeout" error
     @backoff.on_exception(backoff.expo,
                           (requests.exceptions.RequestException),
                           max_tries=4,
@@ -247,9 +252,9 @@ class Client():
             params["quotaUser"] = self.quota_user
 
         if method == 'POST':
-            response = self.session.post(url, headers=headers, params=params, json=data)
+            response = self.session.post(url, headers=headers, params=params, json=data, timeout=self.request_timeout)
         else:
-            response = self.session.request(method, url, headers=headers, params=params)
+            response = self.session.request(method, url, headers=headers, params=params, timeout=self.request_timeout)
 
         error_message = _is_json(response) and response.json().get("error", {}).get("message")
         if 400 <= response.status_code < 500 and error_message and not should_retry(response):
