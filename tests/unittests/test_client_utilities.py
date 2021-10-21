@@ -137,7 +137,7 @@ class TestClientRetries(unittest.TestCase):
         with self.assertRaises(requests.exceptions.Timeout):
             client.post("TimeoutError")
 
-        # Post request(Session.post) called 5 times (4 for backoof + 1 for _ensure_access_token())
+        # Post request(Session.post) called 5 times (4 for backoff + 1 for _ensure_access_token())
         self.assertEqual(mocked_session_post.call_count, 5)
     
     def test_timeout_error_get_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
@@ -148,7 +148,7 @@ class TestClientRetries(unittest.TestCase):
         with self.assertRaises(requests.exceptions.Timeout):
             client.get("TimeoutError")
 
-        # Get request(Session.request) called 5 times (4 for backoof + 1 for _populate_profile_lookup())
+        # Get request(Session.request) called 5 times (4 for backoff + 1 for _populate_profile_lookup())
         self.assertEqual(mocked_session_request.call_count, 5)
 
     def test_503_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
