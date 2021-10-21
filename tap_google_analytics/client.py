@@ -231,6 +231,9 @@ class Client():
     # For fewer requests, and reliability. This backoff tries less hard.
     # Backoff Max Time: try 1 (wait 10) 2 (wait 100) 3 (wait 1000) 4
     # Gives us waits of: (10 * 10 ^ 0), (10 * 10 ^ 1), (10 * 10 ^ 2)
+    #
+    # backoff for Timeout exception is already included in "requests.exceptions.RequestException"
+    # as it is the parent class of "Timeout" error
     @backoff.on_exception(backoff.expo,
                           (requests.exceptions.RequestException),
                           max_tries=4,
