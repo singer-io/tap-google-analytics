@@ -28,11 +28,11 @@ class MockResponse:
         else:
             return None
 
-def mocked_post_with_self(self, url, headers=None, params=None, json=None):
+def mocked_post_with_self(self, url, headers=None, params=None, json=None, timeout=300):
     return mocked_post(url, headers=headers, params=params, json=json)
 
 URL_PATTERN = re.compile(r'^(?P<status_code>\d+)-(?P<status_title>[A-Z_]+)$')
-def mocked_post(url, headers=None, params=None, json=None, data=None):
+def mocked_post(url, headers=None, params=None, json=None, data=None, timeout=300):
     if url == "https://oauth2.googleapis.com/token":
         return MockResponse(
             {
@@ -42,6 +42,8 @@ def mocked_post(url, headers=None, params=None, json=None, data=None):
             200)
     elif url == "NoJsonData":
         return MockResponse(None, 401)
+    elif url == "TimeoutError": # Raise timeout error when URL is passed TimeoutError
+        raise requests.exceptions.Timeout
 
     matches = URL_PATTERN.match(url)
     if matches:
@@ -62,13 +64,16 @@ def mocked_post(url, headers=None, params=None, json=None, data=None):
         "[url={}][headers={}][params={}][json={}][data={}]".format(url, headers, params, json, data)
     )
 
-def mocked_request(self, method, url, headers=None, params=None):
+def mocked_request(self, method, url, headers=None, params=None, timeout=300):
     if method == 'GET' and url == "https://www.googleapis.com/analytics/v3/management/accountSummaries":
         return MockResponse(
             {
                 'items': []
             },
             200)
+    
+    elif url == "TimeoutError": # Raise timeout error when URL is passed TimeoutError
+        raise requests.exceptions.Timeout
 
     raise NotImplementedError(
         "Unexpected mocked get called with "
@@ -123,6 +128,28 @@ class TestClientRetries(unittest.TestCase):
         # Assert we retried 3 times until failing the last one
         # max tries = 4
         self.assertEqual(mocked_session_post.call_count, 5)
+
+    def test_timeout_error_post_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
+        '''
+            Verify that timeout error is retrying for 4 times for post call
+        '''
+        client = Client(self.config, self.config_path)
+        with self.assertRaises(requests.exceptions.Timeout):
+            client.post("TimeoutError")
+
+        # Post request(Session.post) called 5 times (4 for backoof + 1 for _ensure_access_token())
+        self.assertEqual(mocked_session_post.call_count, 5)
+    
+    def test_timeout_error_get_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
+        '''
+            Verify that timeout error is retrying for 4 times for get call
+        '''
+        client = Client(self.config, self.config_path)
+        with self.assertRaises(requests.exceptions.Timeout):
+            client.get("TimeoutError")
+
+        # Get request(Session.request) called 5 times (4 for backoof + 1 for _populate_profile_lookup())
+        self.assertEqual(mocked_session_request.call_count, 5)
 
     def test_503_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
