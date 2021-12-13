@@ -196,10 +196,13 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                             self.assertGreaterEqual(record[replication_key], simulated_bookmark_value)
 
                     # Verify today's date is the max replication-key value for the second sync
-                    self.assertEqual(second_sync_messages[-1][replication_key], today)
+                    self.assertEqual(second_sync_messages[-1][replication_key], today,
+                                     msg=f"today is present in result: {today in second_replication_values}")
 
                     # Verify today's date is the max replication-key value for the first sync
-                    self.assertEqual(first_sync_messages[-1][replication_key], today)
+
+                    self.assertEqual(first_sync_messages[-1][replication_key], today,
+                                     msg=f"today is present in result: {today in first_replication_values}")
 
                     # NB: We bookmark based on the last date where data "is golden" (unchanging), but will
                     #     replicate data through the date when the sync is ran, in this case today.
