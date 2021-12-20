@@ -34,7 +34,6 @@ jobs:
           path: test_output/report.xml
       - store_artifacts:
           path: htmlcov
-      - add_ssh_keys
       - run:
           name: 'Integration Tests'
           command: |
@@ -46,18 +45,18 @@ jobs:
 
 workflows:
   version: 2
-  commit:
+  commit: &commit_jobs
     jobs:
       - build:
-          context: circleci-user
+          context:
+            - circleci-user
+            - tier-1-tap-user
   build_daily:
+    <<: *commit_jobs
     triggers:
       - schedule:
-          cron: "0 6 * * *"
+          cron: "0 1 * * *"
           filters:
             branches:
               only:
                 - master
-    jobs:
-      - build:
-          context: circleci-user
