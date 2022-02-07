@@ -200,7 +200,7 @@ class TestClientRetries(unittest.TestCase):
 
     def test_403_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        expected_error_msg = "HTTP-error-code: 403, Error: {'code': 403, 'message': 'error message', 'status': 'PERMISSION_DENIED'}, Message: User does not have permission to access the resource."
+        expected_error_msg = "HTTP-error-code: 403, Error: {'code': 403, 'message': 'error message', 'status': 'PERMISSION_DENIED'}, Message: User does not have permission to access the resource or has exceeded the daily limit quota."
         with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsPermissionDeniedError) as e:
             client.post("403-PERMISSION_DENIED")
         # Assert the message raise in the exceptions is as expected
