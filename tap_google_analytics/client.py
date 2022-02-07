@@ -52,7 +52,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     403: {
         "raise_exception": GoogleAnalyticsPermissionDeniedError,
-        "message": "User does not have permission to access the resource."
+        "message": "User does not have permission to access the resource or has exceeded the daily limit quota."
     },
     429: {
         "raise_exception": GoogleAnalyticsResourceExhaustedError,
