@@ -68,7 +68,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     }
 }
 
-def get_exception_for_status_code(status_code, error_code):
+def get_exception_for_status_code(status_code):
     return ERROR_CODE_EXCEPTION_MAPPING.get(status_code, {}).get("raise_exception", GoogleAnalyticsClientError)
 
 
@@ -194,18 +194,16 @@ def is_cached_profile_lookup_valid(config):
 def raise_for_error(response):
     '''Raise error with proper message based in error code from the response.'''
     status_code = response.status_code
-    LOGGER.info(f'status code {status_code}')
     try:
         json_response = response.json()
     except Exception:
         json_response = {}
-    LOGGER.info(f' resp {json_response}')
     # get google-analytics error code, message and prepare message
     error_code = json_response.get("error")
     error_message = json_response.get("message", ERROR_CODE_EXCEPTION_MAPPING.get(status_code, {}).get("message", "Unknown Error"))
     message = "HTTP-error-code: {}, Error: {}, Message: {}".format(status_code, error_code, error_message)
     # get exception class
-    exception = get_exception_for_status_code(status_code, error_code)
+    exception = get_exception_for_status_code(status_code)
     raise exception(message, response) from None
 
 # pylint: disable=too-many-instance-attributes
