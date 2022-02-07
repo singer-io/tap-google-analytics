@@ -1,6 +1,7 @@
 import unittest
 import requests
 import re
+import tap_google_analytics.client as GoogleAnalyticsClient
 from unittest.mock import patch
 from unittest.mock import MagicMock
 
@@ -105,27 +106,30 @@ class TestClientRetries(unittest.TestCase):
 
     def test_non_json_response_triggers_retry_backoff(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status'):
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsClientError):
             client.post("NoJsonData")
-
         # Assert we retried 3 times until failing the last one
         # max tries = 4
         self.assertEqual(mocked_session_post.call_count, 5)
 
     def test_429_triggers_retry_backoff(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status'):
+        expected_error_msg = "HTTP-error-code: 429, Error: {'code': 429, 'message': 'error message', 'status': 'RESOURCE_EXHAUSTED'}, Message: API rate limit exceeded, please retry after some time."
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsResourceExhaustedError) as e:
             client.post("429-RESOURCE_EXHAUSTED")
-
+        # Assert the message raise in the exceptions is as expected
+        self.assertEqual(e.exception.message, expected_error_msg)
         # Assert we retried 3 times until failing the last one
         # max tries = 4
         self.assertEqual(mocked_session_post.call_count, 5)
 
     def test_503_unavailable_triggers_retry_backoff(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status'):
+        expected_error_msg = "HTTP-error-code: 503, Error: {'code': 503, 'message': 'error message', 'status': 'UNAVAILABLE'}, Message: The service was unable to process the request."
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsClientError) as e:
             client.post("503-UNAVAILABLE")
-
+        # Assert the message raise in the exceptions is as expected
+        self.assertEqual(e.exception.message, expected_error_msg)
         # Assert we retried 3 times until failing the last one
         # max tries = 4
         self.assertEqual(mocked_session_post.call_count, 5)
@@ -154,7 +158,7 @@ class TestClientRetries(unittest.TestCase):
 
     def test_503_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status'):
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsBackendError):
             client.post("503-BACKENDERROR")
 
         # Assert we gave up only after the first try
@@ -162,38 +166,43 @@ class TestClientRetries(unittest.TestCase):
 
     def test_500_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(requests.exceptions.RequestException, 'Raise for status'):
+        expected_error_msg = "HTTP-error-code: 500, Error: {'code': 500, 'message': 'error message', 'status': 'INTERNAL'}, Message: An internal error has occurred at GoogleAnalytics's end."
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsInternalServerError) as e:
             client.post("500-INTERNAL")
-
+        # Assert the message raise in the exceptions is as expected
+        self.assertEqual(e.exception.message, expected_error_msg)
         # Assert we gave up only after the first try
         self.assertEqual(mocked_session_post.call_count, 2)
 
-
     def test_400_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(Exception, 'Client Error, error message'):
+        expected_error_msg = "HTTP-error-code: 400, Error: {'code': 400, 'message': 'error message', 'status': 'INVALID_ARGUMENT'}, Message: The request is missing or has a bad parameter."
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsInvalidArgumentError) as e:
             client.post("400-INVALID_ARGUMENT")
-
+        # Assert the message raise in the exceptions is as expected
+        self.assertEqual(e.exception.message, expected_error_msg)
         # Assert we gave up only after the first try
         self.assertEqual(mocked_session_post.call_count, 2)
 
     def test_401_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(Exception, 'Client Error, error message'):
+        expected_error_msg = "HTTP-error-code: 401, Error: {'code': 401, 'message': 'error message', 'status': 'UNAUTHENTICATED'}, Message: Invalid authorization credentials."
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsUnauthenticatedError) as e:
             client.post("401-UNAUTHENTICATED")
-
+        # Assert the message raise in the exceptions is as expected
+        self.assertEqual(e.exception.message, expected_error_msg)
         # Assert we gave up only after the first try
         self.assertEqual(mocked_session_post.call_count, 2)
 
     def test_403_backend_triggers_no_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
         client = Client(self.config, self.config_path)
-        with self.assertRaisesRegex(Exception, 'Client Error, error message'):
+        expected_error_msg = "HTTP-error-code: 403, Error: {'code': 403, 'message': 'error message', 'status': 'PERMISSION_DENIED'}, Message: User does not have permission to access the resource."
+        with self.assertRaises(GoogleAnalyticsClient.GoogleAnalyticsPermissionDeniedError) as e:
             client.post("403-PERMISSION_DENIED")
-
+        # Assert the message raise in the exceptions is as expected
+        self.assertEqual(e.exception.message, expected_error_msg)
         # Assert we gave up only after the first try
         self.assertEqual(mocked_session_post.call_count, 2)
-
-
 
 class TestClientTCPKeepalive(unittest.TestCase):
     def setUp(self):
