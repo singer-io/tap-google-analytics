@@ -305,7 +305,7 @@ class Client():
     #
     # added the backoff for the parent class GoogleAnalyticsClientError and for Timeout error
     @backoff.on_exception(backoff.expo,
-                          (requests.exceptions.Timeout, GoogleAnalyticsClientError),
+                          (requests.exceptions.Timeout, requests.exceptions.ConnectionError, GoogleAnalyticsClientError),
                           max_tries=4,
                           base=10,
                           giveup=should_giveup,
@@ -325,13 +325,6 @@ class Client():
             response = self.session.post(url, headers=headers, params=params, json=data, timeout=self.request_timeout)
         else:
             response = self.session.request(method, url, headers=headers, params=params, timeout=self.request_timeout)
-        # LOGGER.info(f'{response.status_code}')
-        # error_message = _is_json(response) and response.json().get("error", {}).get("message")
-        # if 400 <= response.status_code < 500 and error_message and not should_retry(response):
-        #     raise Exception("{} Client Error, error message: {}".format(response.status_code, error_message))
-
-        # response.raise_for_status()
-        # LOGGER.info(f'>>> error')
         if response.status_code != 200:
             raise_for_error(response)
 

@@ -46,6 +46,8 @@ def mocked_post(url, headers=None, params=None, json=None, data=None, timeout=DE
         return MockResponse(None, 401)
     elif url == "TimeoutError": # Raise timeout error when URL is passed TimeoutError
         raise requests.exceptions.Timeout
+    elif url == "ConnectionError": # Raise connection error when URL is passed ConnectionError
+        raise requests.exceptions.ConnectionError
 
     matches = URL_PATTERN.match(url)
     if matches:
@@ -76,6 +78,8 @@ def mocked_request(self, method, url, headers=None, params=None, timeout=DEFAULT
     
     elif url == "TimeoutError": # Raise timeout error when URL is passed TimeoutError
         raise requests.exceptions.Timeout
+    elif url == "ConnectionError": # Raise connection error when URL is passed ConnectionError
+        raise requests.exceptions.ConnectionError
 
     raise NotImplementedError(
         "Unexpected mocked get called with "
@@ -203,6 +207,28 @@ class TestClientRetries(unittest.TestCase):
         self.assertEqual(e.exception.message, expected_error_msg)
         # Assert we gave up only after the first try
         self.assertEqual(mocked_session_post.call_count, 2)
+
+    def test_connection_error_post_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
+        '''
+            Verify that connection error is retrying for 4 times for post call
+        '''
+        client = Client(self.config, self.config_path)
+        with self.assertRaises(requests.exceptions.ConnectionError):
+            client.post("ConnectionError")
+
+        # Post request(Session.post) called 5 times (4 for backoff + 1 for _ensure_access_token())
+        self.assertEqual(mocked_session_post.call_count, 5)
+    
+    def test_connection_error_get_retry(self, mocked_time_sleep, mocked_session_post, mocked_session_request, mocked_request_post):
+        '''
+            Verify that connection error is retrying for 4 times for get call
+        '''
+        client = Client(self.config, self.config_path)
+        with self.assertRaises(requests.exceptions.ConnectionError):
+            client.get("ConnectionError")
+
+        # Get request(Session.request) called 5 times (4 for backoff + 1 for _populate_profile_lookup())
+        self.assertEqual(mocked_session_request.call_count, 5)
 
 class TestClientTCPKeepalive(unittest.TestCase):
     def setUp(self):
