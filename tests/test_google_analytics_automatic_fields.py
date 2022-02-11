@@ -64,3 +64,11 @@ class MinimumSelectionTest(GoogleAnalyticsBaseTest):
                 # Verify that only the automatic fields are sent to the target
                 for actual_keys in record_messages_keys:
                     self.assertSetEqual(expected_keys, actual_keys)
+
+                # Verify we did not duplicate any records across pages
+                records_pks_set = {tuple([message.get('data').get(primary_key) for primary_key in expected_keys])
+                                          for message in data.get('messages')}
+                records_pks_list = [tuple([message.get('data').get(primary_key) for primary_key in expected_keys])
+                                           for message in data.get('messages')]
+                self.assertCountEqual(records_pks_set, records_pks_list,
+                                      msg="We have duplicate records for {}".format(stream))

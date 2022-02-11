@@ -390,12 +390,12 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             },
             "Audience Overview": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:sessionsPerUser", "ga:pageviews",
-                "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate", "ga:date",
+                "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate", "ga:date",'ga:month','ga:operatingSystem','ga:language','ga:hour','ga:browser','ga:year','ga:country','ga:city'
             },
             "Audience Geo Location": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:pageviewsPerSession",
                 "ga:avgSessionDuration", "ga:bounceRate", "ga:date", "ga:country", "ga:city",
-                "ga:continent", "ga:subContinent"
+                "ga:continent", "ga:subContinent",'ga:month','ga:hour','ga:year'
             },
             "Audience Technology": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:pageviewsPerSession",
