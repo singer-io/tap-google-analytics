@@ -69,6 +69,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
 }
 
 def get_exception_for_status_code(status_code):
+    '''Get the corresponding custom exception for the status code of the error.'''
     return ERROR_CODE_EXCEPTION_MAPPING.get(status_code, {}).get("raise_exception", GoogleAnalyticsClientError)
 
 
@@ -192,7 +193,7 @@ def is_cached_profile_lookup_valid(config):
     return True
 
 def raise_for_error(response):
-    '''Raise error with proper message based in error code from the response.'''
+    '''Raise error with a proper message based on error code from the response.'''
     status_code = response.status_code
     try:
         json_response = response.json()
