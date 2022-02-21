@@ -8,7 +8,8 @@ import random
 class GoogleAnalyticsRandomFieldselectionTest(GoogleAnalyticsBaseTest):
     """Ensure running the tap with Audience Technology streams and fields selected results in the replication of more than automatic fields."""
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tap_tester_google_analytics_random_dimension_metric_test"
 
     def get_non_selected_fields(self):
