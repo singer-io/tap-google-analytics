@@ -243,7 +243,6 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         """
 
         metadata = catalog['metadata']
-        print(metadata)
         fields = set(md['breadcrumb'][-1] for md in metadata
                              if len(md['breadcrumb']) > 0 and md['breadcrumb'][0] == 'properties')
         return fields
@@ -294,7 +293,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
             # Verify all intended fields within the stream are selected
             if non_selected_props:
-                expected_selected_fields = self.get_all_fields(cat) - non_selected_props.get(cat['stream_name'],set())
+                expected_selected_fields = self.get_all_fields(catalog_entry) - non_selected_props.get(cat['stream_name'],set())
             else:
                 expected_selected_fields = expected_automatic_fields | selected_default_fields | selected_pagination_fields
             selected_fields = self._get_selected_fields_from_metadata(catalog_entry['metadata'])
