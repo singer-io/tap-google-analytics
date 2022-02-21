@@ -14,7 +14,8 @@ class GoogleAnalyticsAllFieldsTest(GoogleAnalyticsBaseTest):
     # Behavior Overview - Some combination of metric and dimensions are not allowed. So skipped from all fields test.
     SKIP_STREAMS = {'Ecommerce Overview','Test Report 1', 'Audience Technology', 'Behavior Overview',}
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tap_tester_google_analytics_all_fields_test"
 
     def test_run(self):

@@ -5,12 +5,12 @@ from base import GoogleAnalyticsBaseTest
 import random
 
 
-class GoogleAnalyticsRandomFieldselectionTest(GoogleAnalyticsBaseTest):
+class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
     """Ensure running the tap with Audience Technology streams and fields selected results in the replication of more than automatic fields."""
 
     @staticmethod
     def name():
-        return "tap_tester_google_analytics_random_dimension_metric_test"
+        return "tap_tester_google_analytics_dynamic_dimension_metric_field_test"
 
     def get_non_selected_fields(self):
         dimension = {"ga:browser","ga:operatingSystem","ga:flashVersion","ga:javaEnabled","ga:screenColors",
