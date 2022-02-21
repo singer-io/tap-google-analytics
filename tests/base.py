@@ -243,6 +243,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         """
 
         metadata = catalog['metadata']
+        print(metadata)
         fields = set(md['breadcrumb'][-1] for md in metadata
                              if len(md['breadcrumb']) > 0 and md['breadcrumb'][0] == 'properties')
         return fields
