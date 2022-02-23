@@ -10,7 +10,7 @@ class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
 
     @staticmethod
     def name():
-        return "tt_google_analytics_dynamic"
+        return "tt_google_analytics_dynamic_metric_dimension"
 
     def get_non_selected_fields(self):
         dimension = {"ga:browser","ga:operatingSystem","ga:flashVersion","ga:javaEnabled","ga:screenColors",
