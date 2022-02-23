@@ -10,11 +10,11 @@ class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
 
     @staticmethod
     def name():
-        return "tap_tester_google_analytics_dynamic_dimension_metric_field_test"
+        return "tap_tester_google_analytics_dynamic_dimension_metric_field_test_1"
 
     def get_non_selected_fields(self):
         dimension = {"ga:browser","ga:operatingSystem","ga:flashVersion","ga:javaEnabled","ga:screenColors",
-                     "ga:screenResolution","ga:hostname","ga:date","ga:year","ga:month","ga:hour"}
+                     "ga:screenResolution","ga:hostname","ga:date","ga:year"}
         selected_fields = set(random.sample(dimension, 9))  # randomly select 9 fields from dimension set
         non_selected_fields = dimension - selected_fields
         return non_selected_fields
