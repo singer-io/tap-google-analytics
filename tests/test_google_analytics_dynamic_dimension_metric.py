@@ -12,8 +12,19 @@ class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
 
     stream_dimension = {
         # Provide the dimension for streams for the random selection
-        "Audience Technology": {"ga:browser", "ga:operatingSystem", "ga:flashVersion", "ga:javaEnabled", "ga:screenColors",
-                     "ga:screenResolution", "ga:hostname", "ga:date", "ga:year", "ga:month", "ga:hour"}
+        "Audience Technology": {
+            "ga:browser",
+            "ga:operatingSystem",
+            "ga:flashVersion",
+            "ga:javaEnabled",
+            "ga:screenColors",
+            "ga:screenResolution",
+            "ga:hostname",
+            "ga:date",
+            "ga:year",
+            "ga:month",
+            "ga:hour"
+            }
         }
 
     conflicting_dimension = {
@@ -23,7 +34,14 @@ class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
 
     stream_metric = {
         # Provide the metrics for streams  for the random selection
-        "Audience Technology": {"ga:users", "ga:newUsers", "ga:sessions", "ga:bounceRate", "ga:avgSessionDuration", "ga:pageviewsPerSession"}
+        "Audience Technology": {
+            "ga:users",
+            "ga:newUsers",
+            "ga:sessions",
+            "ga:bounceRate",
+            "ga:avgSessionDuration",
+            "ga:pageviewsPerSession"
+            }
     }
 
     # Ecommerce Overview - TODO https://stitchdata.atlassian.net/browse/SRCE-5084
@@ -83,21 +101,11 @@ class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
         self.validate_selected_fields(fields)
         return fields
 
-    def test_run(self):
-
-        # As Audience Technology stream has random field selection, running that stream 5 times
-        for i in range(5):
-            expected_streams = {"Audience Technology"}
-            self.run_temp(expected_streams)
-        # For other streams, running the test case once
-        expected_streams = self.expected_sync_streams() - self.SKIP_STREAMS
-        self.run_temp(expected_streams)
-
-    def run_temp(self, expected_streams):
+    def verify_field_selection(self, expected_streams):
         """
         • Verify no unexpected streams were replicated.
         • Verify that more than just the automatic fields are replicated for each stream. 
-        • verify the selected fields for each Audience Technology streams are replicated.
+        • verify the selected fields for each streams are replicated.
         """
 
         # Grabbing the non_selected_props for the streams
@@ -156,3 +164,14 @@ class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
 
                 # verify all the selected fields for each streams are replicated
                 self.assertSetEqual(expected_all_keys, actual_all_keys)
+
+    def test_run(self):
+
+        # As Audience Technology stream has random field selection, running that stream 5 times
+        for i in range(5):
+            expected_streams = {"Audience Technology"}
+            self.verify_field_selection(expected_streams)
+
+        # For other streams, running the test case once
+        expected_streams = self.expected_sync_streams() - self.SKIP_STREAMS
+        self.verify_field_selection(expected_streams)
