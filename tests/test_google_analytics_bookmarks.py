@@ -69,11 +69,6 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
         expected_replication_keys = self.expected_replication_keys()
         expected_replication_methods = self.expected_replication_method()
 
-
-        # BUG_TDL-16943 https://jira.talendforge.org/browse/TDL-16943
-        #    [tap-google-analytics] Investigate report replication date failures in regression build
-        #    To Reproduce: comment/uncomment the marked lines
-
         today = datetime.datetime.utcnow().strftime(self.REPLICATION_KEY_FORMAT)
         self.account_id = self.get_properties()['view_id']
         custom_streams_name_to_id = self.custom_reports_names_to_ids()
@@ -195,22 +190,19 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     second_replication_values_sorted = sorted(second_replication_values)
                     self.assertEqual(second_replication_values_sorted, second_replication_values)
 
-                    # Verify the second sync records respect the previous (simulated) bookmark value
+                   
                     for record in second_sync_messages:
                         with self.subTest(record=record):
+                            # Verify the second sync records respect the previous (simulated) bookmark value
                             self.assertGreaterEqual(record[replication_key], simulated_bookmark_value)
 
-                    # UNCOMMENT START BUG_TDL-16943
-                    # with self.subTest():
-                    #     # Verify today's date is the max replication-key value for the second sync
-                    #     self.assertEqual(second_sync_messages[-1][replication_key], today,
-                    #                      msg=f"today is present in result: {today in second_replication_values}")
+                            # Verify today's date is the max replication-key value for the second sync
+                            self.assertGreaterEqual(today, record[replication_key])
 
-                    # with self.subTest():
-                    #     # Verify today's date is the max replication-key value for the first sync
-                    #     self.assertEqual(first_sync_messages[-1][replication_key], today,
-                    #                      msg=f"today is present in result: {today in first_replication_values}")
-                    # UNCOMMENT END BUG_TDL-16943
+                    for record in first_sync_messages:
+                        with self.subTest(record=record):
+                            # Verify today's date is the max replication-key value for the first sync
+                            self.assertGreaterEqual(today, record[replication_key])
 
                     # NB: We bookmark based on the last date where data "is golden" (unchanging), but will
                     #     replicate data through the date when the sync is ran, in this case today.

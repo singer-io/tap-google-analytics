@@ -237,9 +237,20 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
         return sync_record_count
 
+    def get_all_fields(self, catalog):
+        """
+        Retriving all fields from the catalog
+        """
+
+        metadata = catalog['metadata']
+        fields = set(md['breadcrumb'][-1] for md in metadata
+                             if len(md['breadcrumb']) > 0 and md['breadcrumb'][0] == 'properties')
+        return fields
+
     def perform_and_verify_table_and_field_selection(self, conn_id, test_catalogs,
                                                      select_default_fields: bool = True,
-                                                     select_pagination_fields: bool = False):
+                                                     select_pagination_fields: bool = False,
+                                                     non_selected_props=dict()):
         """
         Perform table and field selection based off of the streams to select
         set and field selection parameters. Note that selecting all fields is not
@@ -254,7 +265,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         self._select_streams_and_fields(
             conn_id=conn_id, catalogs=test_catalogs,
             select_default_fields=select_default_fields,
-            select_pagination_fields=select_pagination_fields
+            select_pagination_fields=select_pagination_fields,
+            non_selected_props=non_selected_props
         )
 
         catalogs = menagerie.get_catalogs(conn_id)
@@ -280,7 +292,10 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             selected_pagination_fields = expected_pagination_fields[cat['stream_name']] if select_pagination_fields else set()
 
             # Verify all intended fields within the stream are selected
-            expected_selected_fields = expected_automatic_fields | selected_default_fields | selected_pagination_fields
+            if non_selected_props:
+                expected_selected_fields = self.get_all_fields(catalog_entry) - non_selected_props.get(cat['stream_name'],set())
+            else:
+                expected_selected_fields = expected_automatic_fields | selected_default_fields | selected_pagination_fields
             selected_fields = self._get_selected_fields_from_metadata(catalog_entry['metadata'])
             for field in expected_selected_fields:
                 field_selected = field in selected_fields
@@ -300,7 +315,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 selected_fields.add(field['breadcrumb'][1])
         return selected_fields
 
-    def _select_streams_and_fields(self, conn_id, catalogs, select_default_fields, select_pagination_fields):
+    def _select_streams_and_fields(self, conn_id, catalogs, select_default_fields, select_pagination_fields, non_selected_props=dict()):
         """Select all streams and all fields within streams"""
 
         for catalog in catalogs:
@@ -320,6 +335,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
                 non_selected_properties = properties.difference(
                     self.expected_pagination_fields()[catalog['stream_name']]
                 )
+            elif non_selected_props:
+                non_selected_properties = non_selected_props.get(catalog['stream_name'])
             else:
                 non_selected_properties = properties
 
@@ -390,12 +407,12 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             },
             "Audience Overview": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:sessionsPerUser", "ga:pageviews",
-                "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate", "ga:date",
+                "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate", "ga:date",'ga:month','ga:operatingSystem','ga:language','ga:hour','ga:browser','ga:year','ga:country','ga:city'
             },
             "Audience Geo Location": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:pageviewsPerSession",
                 "ga:avgSessionDuration", "ga:bounceRate", "ga:date", "ga:country", "ga:city",
-                "ga:continent", "ga:subContinent"
+                "ga:continent", "ga:subContinent",'ga:month','ga:hour','ga:year'
             },
             "Audience Technology": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:pageviewsPerSession",
