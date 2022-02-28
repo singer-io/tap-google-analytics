@@ -15,6 +15,64 @@ LOGGER = singer.get_logger()
 
 REQUEST_TIMEOUT = 300
 
+# pylint: disable=missing-class-docstring
+class GoogleAnalyticsClientError(Exception):
+    def __init__(self, message=None, response=None):
+        super().__init__(message)
+        self.message = message
+        self.response = response
+
+class GoogleAnalyticsInvalidArgumentError(GoogleAnalyticsClientError):
+    pass
+
+class GoogleAnalyticsUnauthenticatedError(GoogleAnalyticsClientError):
+    pass
+
+class GoogleAnalyticsPermissionDeniedError(GoogleAnalyticsClientError):
+    pass
+
+class GoogleAnalyticsResourceExhaustedError(GoogleAnalyticsClientError):
+    pass
+
+class GoogleAnalyticsInternalServerError(GoogleAnalyticsClientError):
+    pass
+
+class GoogleAnalyticsBackendError(GoogleAnalyticsClientError):
+    pass
+
+# error code to exception class and error message mapping
+ERROR_CODE_EXCEPTION_MAPPING = {
+    400: {
+        "raise_exception": GoogleAnalyticsInvalidArgumentError,
+        "message": "The request is missing or has a bad parameter."
+    },
+    401: {
+        "raise_exception": GoogleAnalyticsUnauthenticatedError,
+        "message": "Invalid authorization credentials."
+    },
+    403: {
+        "raise_exception": GoogleAnalyticsPermissionDeniedError,
+        "message": "User does not have permission to access the resource or has exceeded the daily limit quota."
+    },
+    429: {
+        "raise_exception": GoogleAnalyticsResourceExhaustedError,
+        "message": "API rate limit exceeded, please retry after some time."
+    },
+    500: {
+        "raise_exception": GoogleAnalyticsInternalServerError,
+        "message": "An internal error has occurred at GoogleAnalytics's end."
+    },
+    503: {
+        "raise_exception": GoogleAnalyticsBackendError,
+        "message": "The service was unable to process the request."
+    }
+}
+
+def get_exception_for_status_code(status_code):
+    '''Get the corresponding custom exception for the status code of the error.'''
+    return ERROR_CODE_EXCEPTION_MAPPING.get(status_code, {}).get("raise_exception", GoogleAnalyticsClientError)
+
+
 def is_retryable_403(response):
     """
     The Google Analytics Management API and Metadata API define three types of 403s that are retryable due to quota limits.
@@ -34,7 +92,7 @@ def is_retryable_403(response):
 
 def get_error_reasons(response):
     """
-    The google apis don't document the way the errors appear in their reponse json in the same way across different api endpoints and versions. This method defensively tries to grab the error reason(s) in all the ways response have shown to have them. Lastly if all those ways fail the error message just shows the full response json.
+    The google apis don't document the way the errors appear in their response json in the same way across different api endpoints and versions. This method defensively tries to grab the error reason(s) in all the ways response have shown to have them. Lastly if all those ways fail the error message just shows the full response json.
     """
     response_json = response.json()
 
@@ -134,6 +192,20 @@ def is_cached_profile_lookup_valid(config):
     # cached_profile_lookup is valid
     return True
 
+def raise_for_error(response):
+    '''Raise error with a proper message based on error code from the response.'''
+    status_code = response.status_code
+    try:
+        json_response = response.json()
+    except Exception:
+        json_response = {}
+    # get google-analytics error code, message and prepare message
+    error_code = json_response.get("error")
+    error_message = json_response.get("message", ERROR_CODE_EXCEPTION_MAPPING.get(status_code, {}).get("message", "Unknown Error"))
+    message = "HTTP-error-code: {}, Error: {}, Message: {}".format(status_code, error_code, error_message)
+    # get exception class
+    exception = get_exception_for_status_code(status_code)
+    raise exception(message, response) from None
 
 # pylint: disable=too-many-instance-attributes
 class Client():
@@ -221,8 +293,8 @@ class Client():
 
         token_response = self.session.post("https://oauth2.googleapis.com/token", json=payload, timeout=self.request_timeout)
 
-        token_response.raise_for_status()
-
+        if token_response.status_code != 200:
+            raise_for_error(token_response)
         token_json = token_response.json()
         self.__access_token = token_json['access_token']
         self.expires_in = token_json['expires_in']
@@ -232,10 +304,9 @@ class Client():
     # Backoff Max Time: try 1 (wait 10) 2 (wait 100) 3 (wait 1000) 4
     # Gives us waits of: (10 * 10 ^ 0), (10 * 10 ^ 1), (10 * 10 ^ 2)
     #
-    # backoff for Timeout exception is already included in "requests.exceptions.RequestException"
-    # as it is the parent class of "Timeout" error
+    # added the backoff for the parent class GoogleAnalyticsClientError and for Timeout error
     @backoff.on_exception(backoff.expo,
-                          (requests.exceptions.RequestException),
+                          (requests.exceptions.Timeout, requests.exceptions.ConnectionError, GoogleAnalyticsClientError),
                           max_tries=4,
                           base=10,
                           giveup=should_giveup,
@@ -255,12 +326,8 @@ class Client():
             response = self.session.post(url, headers=headers, params=params, json=data, timeout=self.request_timeout)
         else:
             response = self.session.request(method, url, headers=headers, params=params, timeout=self.request_timeout)
-
-        error_message = _is_json(response) and response.json().get("error", {}).get("message")
-        if 400 <= response.status_code < 500 and error_message and not should_retry(response):
-            raise Exception("{} Client Error, error message: {}".format(response.status_code, error_message))
-
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise_for_error(response)
 
         return response
 

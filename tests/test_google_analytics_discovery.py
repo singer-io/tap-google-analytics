@@ -38,7 +38,7 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
         for stream in streams_to_test:
             with self.subTest(stream=stream):
 
-                # Verify ensure the caatalog is found for a given stream
+                # Verify the catalog is found for a given stream
                 catalog = next(iter([catalog for catalog in found_catalogs
                                      if catalog["stream_name"] == stream]))
                 self.assertIsNotNone(catalog)
@@ -58,6 +58,11 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
                     stream_properties[0].get(
                         "metadata", {self.PRIMARY_KEYS: []}).get(self.PRIMARY_KEYS, [])
                 )
+                actual_fields = []
+                for md_entry in metadata:
+                    if md_entry['breadcrumb'] != []:
+                        actual_fields.append(md_entry['breadcrumb'][1])
+
                 # TODO uncomment unused expectation variables when BUG_1 fixed
                 # actual_replication_keys = set(
                 #     stream_properties[0].get(
@@ -69,6 +74,10 @@ class DiscoveryTest(GoogleAnalyticsBaseTest):
                     item.get("breadcrumb", ["properties", None])[1] for item in metadata
                     if item.get("metadata").get("inclusion") == "automatic"
                 )
+
+                # Verify there are no duplicate metadata entries
+                self.assertEqual(len(actual_fields),
+                                len(set(actual_fields)), msg = "duplicates in the metadata entries retrieved")
 
                 # verify there is only 1 top level breadcrumb in metadata
                 self.assertTrue(len(stream_properties) == 1,
