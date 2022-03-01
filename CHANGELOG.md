@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+  * Add Custom Error Handling [#69](https://github.com/singer-io/tap-google-analytics/pull/69)
+  * Added missing test cases [#68](https://github.com/singer-io/tap-google-analytics/pull/68)
+  * Investimate report replication date failures [#67](https://github.com/singer-io/tap-google-analytics/pull/67)
+
 ## 1.1.1
   * Add Request Timeout Option
 
