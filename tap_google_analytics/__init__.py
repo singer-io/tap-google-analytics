@@ -11,6 +11,7 @@ from .sync import sync_report
 
 LOGGER = singer.get_logger()
 
+DEFAULT_PAGE_SIZE = 1000
 
 # TODO: Add an integration test with multiple profiles that asserts state
 def clean_state_for_report(config, state, tap_stream_id):
@@ -63,6 +64,9 @@ def do_sync(client, config, catalog, state):
     to sync to generate the required reports.
     """
     selected_streams = catalog.get_selected_streams(state)
+    # If page_size found in config then used it else use default page size.
+    page_size = config.get('page_size', DEFAULT_PAGE_SIZE)
+
     for stream in selected_streams:
         # Transform state for this report to new format before proceeding
         state = clean_state_for_report(config, state, stream.tap_stream_id)
@@ -122,7 +126,7 @@ def do_sync(client, config, catalog, state):
 
             is_historical_sync, start_date = get_start_date(config, report['profile_id'], state, report['id'])
 
-            sync_report(client, schema, report, start_date, end_date, state, is_historical_sync)
+            sync_report(client, schema, report, start_date, end_date, state, page_size, is_historical_sync)
         state.pop('currently_syncing_view', None)
         singer.write_state(state)
     state = singer.set_currently_syncing(state, None)

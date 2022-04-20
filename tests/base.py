@@ -50,7 +50,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         return_value = {
             'start_date' : (dt.utcnow() - timedelta(days=30)).strftime(self.START_DATE_FORMAT),
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
-            'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "Test Report 1"}]
+            'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "Test Report 1"}],
+            'page_size': 1
         }
         if original:
             return return_value
@@ -438,13 +439,20 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         return {
             "Test Report 1" : set(),
             "Audience Overview": {
-                "ga:users", "ga:newUsers", "ga:sessions", "ga:sessionsPerUser", "ga:pageviews",
-                "ga:pageviewsPerSession", "ga:sessionDuration", "ga:bounceRate", "ga:date",
-                # "ga:pageviews",
+                'ga:users', 'ga:newUsers', 'ga:sessions', 'ga:bounceRate', 'ga:avgSessionDuration', 'ga:pageviews', 
+                'ga:pageviewsPerSession', 'ga:sessionsPerUser', 'ga:browser', 'ga:operatingSystem', 'ga:country', 
+                'ga:city', 'ga:language', 'ga:date', 'ga:year', 'ga:month', 'ga:hour'
             },
-            "Audience Geo Location": set(),
+            "Audience Geo Location": {
+                'ga:users', 'ga:newUsers', 'ga:sessions', 'ga:bounceRate', 'ga:avgSessionDuration', 'ga:pageviewsPerSession',
+                'ga:continent', 'ga:subContinent', 'ga:country', 'ga:city', 'ga:date', 'ga:year', 'ga:month', 'ga:hour'
+            },
             "Audience Technology": set(),
-            "Acquisition Overview": set(),
+            "Acquisition Overview": {
+                "ga:sessions", 'ga:bounceRate', 'ga:avgSessionDuration', 'ga:pageviewsPerSession', 
+                'ga:acquisitionMedium', 'ga:acquisitionSource', 'ga:acquisitionSourceMedium', 
+                'ga:acquisitionTrafficChannel'
+            },
             "Behavior Overview": set(),
             "Ecommerce Overview": set(),
         }
