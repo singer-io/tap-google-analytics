@@ -11,7 +11,7 @@ error_after = None
 reports_synced = 0
 DEFAULT_PAGE_SIZE = 1000
 
-def get_mock_report(name, profile_id, report_date, metrics, dimensions):
+def get_mock_report(name, profile_id, report_date, metrics, dimensions, page_size):
     global reports_synced
     if error_after and reports_synced == error_after:
         raise Exception("Report failed!")
