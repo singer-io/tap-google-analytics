@@ -1,7 +1,27 @@
 # tap-google-analytics
 
-This tap is currently under development, and incomplete.
+This is a [Singer](https://singer.io) tap that produces JSON-formatted data following the [Singer spec](https://github.com/singer-io/getting-started/blob/master/SPEC.md).
 
+How to use it:
+- `tap-google-analytics` works together with any other [Singer Target](https://singer.io) to move data from Google Analytics API to any target destination.
+
+## Configuration
+
+This tap requires a `config.json` which specifies details regarding [OAuth 2.0](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#OAuth2Authorizing) authentication, a cutoff date for syncing historical data, and an optional flag which controls collection of anonymous usage metrics. See [config.sample.json](config.sample.json) for an example. You may specify an API key instead of OAuth parameters for development purposes, as detailed below.
+
+To run `tap-hubspot` with the configuration file, use this command:
+
+```bash
+› tap-google-analytics -c my-config.json
+```
+
+
+## Service Account Authentication (for development)
+
+Service accounts are useful for automated, offline, or scheduled access to Google Analytics data for your own account. For example, to build a live dashboard of your own Google Analytics data and share it with other users.
+See the [Google Analytics Service Accounts](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#service_accounts) section for more information on how to set up the service account.
+
+To use an API key, include a `private_key` and `client_email` configuration variables in your `config.json` and set it to the value of your credentials.
 ---
 
 Copyright &copy; 2019 Stitch
