@@ -7,7 +7,7 @@ How to use it:
 
 ## Configuration
 
-This tap requires a `config.json` which specifies details regarding [OAuth 2.0](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#OAuth2Authorizing) authentication, a cutoff date for syncing historical data, and an optional flag which controls collection of anonymous usage metrics. See [config.sample.json](config.sample.json) for an example. You may specify an API key instead of OAuth parameters for development purposes, as detailed below.
+This tap requires a `config.json` which specifies details regarding [OAuth 2.0](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#OAuth2Authorizing) authentication, a cutoff date for syncing historical data, and an optional flag which controls the method of authentication. See [config.sample.json](config.sample.json) for an example. You may specify an API key instead of OAuth parameters for development purposes, as detailed below.
 
 To run the discover mode of `tap-google-analytics` with the configuration file, use this command:
 
