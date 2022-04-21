@@ -2,7 +2,6 @@
 ### TODO WAITING ON https://stitchdata.atlassian.net/browse/SRCE-5065
 ##########################################################################
 
-import os
 
 from datetime import timedelta
 from datetime import datetime as dt
@@ -14,6 +13,9 @@ from base import GoogleAnalyticsBaseTest
 
 class GoogleAnalyticsPaginationTest(GoogleAnalyticsBaseTest):
     """Test that we are paginating for streams when exceeding the API record limit of a single query"""
+
+    # TODO https://stitchdata.atlassian.net/browse/SRCE-5084
+    SKIP_STREAMS = {'Ecommerce Overview',}
 
     API_LIMIT = 1
     
@@ -32,8 +34,11 @@ class GoogleAnalyticsPaginationTest(GoogleAnalyticsBaseTest):
         """
         self.start_date = (dt.utcnow() - timedelta(days=4)).strftime(self.START_DATE_FORMAT) # Needs to be prior to isGolden..
         
-        expected_streams = {'Acquisition Overview', 'Audience Geo Location', 'Audience Overview'}
+        expected_streams = self.expected_sync_streams() - self.SKIP_STREAMS
 
+        # Reduce page_size to pass the pagination test case.
+        self.PAGE_SIZE = self.API_LIMIT
+        
         # Create connection but do not use default start date
         conn_id = connections.ensure_connection(self, original_properties=False)
 
@@ -61,6 +66,9 @@ class GoogleAnalyticsPaginationTest(GoogleAnalyticsBaseTest):
         synced_stream_names = set(synced_records.keys())
         self.assertSetEqual(expected_streams, synced_stream_names)
 
+        # Revert back page size to 1000 for other test cases.
+        self.PAGE_SIZE = 1000
+
         for stream in expected_streams:
             with self.subTest(stream=stream):
 
@@ -87,6 +95,9 @@ class GoogleAnalyticsPaginationTest(GoogleAnalyticsBaseTest):
 
                 
                 messages = synced_records[stream]['messages']
+                
+                # Retrieve records for the start_date window only because, the tap calls the API on day-wise.
+                # So, we are verifying pagination for the start_date API call.
                 start_date_messages = [m for m in messages if m['data']['start_date'] == self.start_date ]
                 primary_keys_list = [tuple([message.get('data').get(expected_pk) for expected_pk in expected_primary_keys])
                                         for message in start_date_messages

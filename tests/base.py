@@ -32,6 +32,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     FULL_TABLE = "FULL_TABLE"
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
     REPLICATION_KEY_FORMAT = "%Y-%m-%dT00:00:00.000000Z"
+    PAGE_SIZE = 1000
 
     start_date = ""
 
@@ -51,7 +52,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             'start_date' : (dt.utcnow() - timedelta(days=30)).strftime(self.START_DATE_FORMAT),
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
             'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "Test Report 1"}],
-            'page_size': 1
+            'page_size': self.PAGE_SIZE
         }
         if original:
             return return_value
@@ -437,23 +438,22 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
     @staticmethod
     def expected_pagination_fields():
         return {
-            "Test Report 1" : set(),
+            "Test Report 1" : {
+                'ga:userType', 'ga:sessionCount', 'ga:daysSinceLastSession', 'ga:exitPagePath', 'ga:previousPagePath'
+            },
             "Audience Overview": {
-                'ga:users', 'ga:newUsers', 'ga:sessions', 'ga:bounceRate', 'ga:avgSessionDuration', 'ga:pageviews', 
-                'ga:pageviewsPerSession', 'ga:sessionsPerUser', 'ga:browser', 'ga:operatingSystem', 'ga:country', 
-                'ga:city', 'ga:language', 'ga:date', 'ga:year', 'ga:month', 'ga:hour'
+                'ga:browser', 'ga:operatingSystem', 'ga:country', 'ga:city', 'ga:language', 'ga:year', 'ga:month', 'ga:hour'
             },
             "Audience Geo Location": {
-                'ga:users', 'ga:newUsers', 'ga:sessions', 'ga:bounceRate', 'ga:avgSessionDuration', 'ga:pageviewsPerSession',
-                'ga:continent', 'ga:subContinent', 'ga:country', 'ga:city', 'ga:date', 'ga:year', 'ga:month', 'ga:hour'
+                'ga:year', 'ga:month', 'ga:hour'
             },
             "Audience Technology": set(),
             "Acquisition Overview": {
-                "ga:sessions", 'ga:bounceRate', 'ga:avgSessionDuration', 'ga:pageviewsPerSession', 
-                'ga:acquisitionMedium', 'ga:acquisitionSource', 'ga:acquisitionSourceMedium', 
-                'ga:acquisitionTrafficChannel'
+                'ga:acquisitionMedium', 'ga:acquisitionSource', 'ga:acquisitionSourceMedium', 'ga:acquisitionTrafficChannel'
             },
-            "Behavior Overview": set(),
+            "Behavior Overview": {
+                "ga:year", "ga:month", "ga:hour",
+            },
             "Ecommerce Overview": set(),
         }
 
