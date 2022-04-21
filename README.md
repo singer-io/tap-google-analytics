@@ -21,7 +21,7 @@ To run he sync mode of `tap-google-analytics` with the catalog file, use the com
 $ tap-google-analytics -c my-config.json --catalog catalog.json
 ```
 
-## Service Account Authentication (for development)
+## Service Account Authentication
 
 Service accounts are useful for automated, offline, or scheduled access to Google Analytics data for your own account. For example, to build a live dashboard of your own Google Analytics data and share it with other users.
 See the [Google Analytics Service Accounts](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#service_accounts) section for more information on how to set up the service account.
