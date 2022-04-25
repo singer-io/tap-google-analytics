@@ -4,7 +4,13 @@ This is a [Singer](https://singer.io) tap that produces JSON-formatted data foll
 
 How to use it:
 - `tap-google-analytics` works together with any other [Singer Target](https://singer.io) to move data from Google Analytics API to any target destination.
-
+- Extracts the following pre-made and any self-made reports from [Google Analytics Reporting API](https://developers.google.com/analytics/devguides/reporting/core/v4/rest/v4/reports/batchGet):
+  - Audience Overview
+  - Audience Geo Location
+  - Audience Technology
+  - Acquisition Overview
+  - Behavior Overview
+  - Ecommerce Overview
 ## Configuration
 
 This tap requires a `config.json` which specifies details regarding [OAuth 2.0](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#OAuth2Authorizing) authentication, a cutoff date for syncing historical data, and an optional flag which controls the method of authentication. See [config.sample.json](config.sample.json) for an example. You may specify an API key instead of OAuth parameters for development purposes, as detailed below.
