@@ -33,6 +33,7 @@ Service accounts are useful for automated, offline, or scheduled access to Googl
 See the [Google Analytics Service Accounts](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#service_accounts) section for more information on how to set up the service account.
 
 To use an API key, include a `private_key` and `client_email` configuration variables in your `config.json` and set it to the value of your credentials.
+
 ---
 
 Copyright &copy; 2019 Stitch
