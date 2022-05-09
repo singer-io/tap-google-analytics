@@ -21,7 +21,7 @@ To run the discover mode of `tap-google-analytics` with the configuration file, 
 $ tap-google-analytics -c my-config.json -d
 ```
 
-To run he sync mode of `tap-google-analytics` with the catalog file, use the command:
+To run the sync mode of `tap-google-analytics` with the catalog file, use the command:
 
 ```bash
 $ tap-google-analytics -c my-config.json --catalog catalog.json
