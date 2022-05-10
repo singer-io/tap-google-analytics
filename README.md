@@ -11,6 +11,11 @@ How to use it:
   - Acquisition Overview
   - Behavior Overview
   - Ecommerce Overview
+
+## Bookmarking Strategy
+
+The Analytics API reports supports the `start_date` and `end_date` parameter that limits the query to only return analytics records within the date period.
+
 ## Configuration
 
 This tap requires a `config.json` which specifies details regarding [OAuth 2.0](https://developers.google.com/analytics/devguides/reporting/core/v4/authorization#OAuth2Authorizing) authentication, a cutoff date for syncing historical data, and an optional flag which controls the method of authentication. See [config.sample.json](config.sample.json) for an example. You may specify an API key instead of OAuth parameters for development purposes, as detailed below.
