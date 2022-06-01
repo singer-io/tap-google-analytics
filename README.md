@@ -12,6 +12,8 @@ How to use it:
   - Behavior Overview
   - Ecommerce Overview
 
+NOTE: For pre-made reports, the field selection must adhere to the google-analytics' field exclusion rule. Hence, certain dimensions and metrics cannot be queried together. For more information on the same, please refer: https://ga-dev-tools.web.app/dimensions-metrics-explorer/.
+
 ## Bookmarking Strategy
 
 The Analytics API reports supports the `start_date` and `end_date` parameter that limits the query to only return analytics records within the date period.
