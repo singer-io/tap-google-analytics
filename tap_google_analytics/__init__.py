@@ -64,7 +64,7 @@ def do_sync(client, config, catalog, state):
     to sync to generate the required reports.
     """
     selected_streams = catalog.get_selected_streams(state)
-    # If page_size found in config then used it else use default page size.
+    # If page_size is found in config then use it, else use the default page size.
     page_size = config.get('page_size', DEFAULT_PAGE_SIZE)
 
     for stream in selected_streams:
