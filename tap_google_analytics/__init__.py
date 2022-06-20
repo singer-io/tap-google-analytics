@@ -58,14 +58,30 @@ def get_end_date(config):
 def get_view_ids(config):
     return config.get('view_ids') or [config.get('view_id')]
 
+def get_page_size(config):
+    """
+    This function will get page size from config,
+    and will return the default value if an invalid page size is given.
+    """
+    page_size = config.get('page_size', DEFAULT_PAGE_SIZE)
+    try:
+        if int(float(page_size)) > 0:
+            return int(float(page_size))
+        else:
+            LOGGER.warning(f"The entered page size is invalid; it will be set to the default page size of {DEFAULT_PAGE_SIZE}")
+            return DEFAULT_PAGE_SIZE
+    except Exception:
+        LOGGER.warning(f"The entered page size is invalid; it will be set to the default page size of {DEFAULT_PAGE_SIZE}")
+        return DEFAULT_PAGE_SIZE
+
 def do_sync(client, config, catalog, state):
     """
     Translate metadata into a set of metrics and dimensions and call out
     to sync to generate the required reports.
     """
     selected_streams = catalog.get_selected_streams(state)
-    # If page_size is found in config then use it, else use the default page size.
-    page_size = config.get('page_size', DEFAULT_PAGE_SIZE)
+    # Get page size
+    page_size = get_page_size(config)
 
     for stream in selected_streams:
         # Transform state for this report to new format before proceeding
