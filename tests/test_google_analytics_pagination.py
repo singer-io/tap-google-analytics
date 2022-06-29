@@ -3,6 +3,7 @@
 ##########################################################################
 
 
+from math import ceil
 from datetime import timedelta
 from datetime import datetime as dt
 
@@ -17,7 +18,7 @@ class GoogleAnalyticsPaginationTest(GoogleAnalyticsBaseTest):
     # TODO https://stitchdata.atlassian.net/browse/SRCE-5084
     SKIP_STREAMS = {'Ecommerce Overview',}
 
-    API_LIMIT = 1
+    API_LIMIT = 2
     
     @staticmethod
     def name():
@@ -103,12 +104,23 @@ class GoogleAnalyticsPaginationTest(GoogleAnalyticsBaseTest):
                                         for message in start_date_messages
                                         if message.get('action') == 'upsert']
 
-                primary_keys_list_1 = primary_keys_list[:self.API_LIMIT]
-                primary_keys_list_2 = primary_keys_list[self.API_LIMIT:2*self.API_LIMIT]
+                # Chunk the replicated records (just primary keys) into expected pages
+                pages = []
+                page_count = ceil(len(primary_keys_list) / self.API_LIMIT)
+                page_size = self.API_LIMIT
+                for page_index in range(page_count):
+                    page_start = page_index * page_size
+                    page_end = (page_index + 1) * page_size
+                    pages.append(set(primary_keys_list[page_start:page_end]))
 
-                primary_keys_page_1 = set(primary_keys_list_1)
-                primary_keys_page_2 = set(primary_keys_list_2)
+                # Verify by primary keys that data is unique for each page
+                for current_index, current_page in enumerate(pages):
+                    with self.subTest(current_page_primary_keys=current_page):
 
-                # Verify by primary keys that data is unique for page
-                self.assertTrue(
-                    primary_keys_page_1.isdisjoint(primary_keys_page_2))
+                        for other_index, other_page in enumerate(pages):
+                            if current_index == other_index:
+                                continue  # don't compare the page to itself
+
+                            self.assertTrue(
+                                current_page.isdisjoint(other_page), msg=f'other_page_primary_keys={other_page}'
+                            )
