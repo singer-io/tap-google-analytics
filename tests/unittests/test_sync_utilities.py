@@ -9,8 +9,9 @@ from tap_google_analytics.sync import sync_report, generate_sdc_record_hash
 reports = None
 error_after = None
 reports_synced = 0
+DEFAULT_PAGE_SIZE = 1000
 
-def get_mock_report(name, profile_id, report_date, metrics, dimensions):
+def get_mock_report(name, profile_id, report_date, metrics, dimensions, page_size):
     global reports_synced
     if error_after and reports_synced == error_after:
         raise Exception("Report failed!")
@@ -48,7 +49,8 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
                     {"id": "123", "name":"test_report", "profile_id": "12345", "metrics":[], "dimensions":[]},
                     utils.strptime_to_utc("2019-11-01"),
                     utils.strptime_to_utc("2019-11-04"),
-                    state)
+                    state,
+                    DEFAULT_PAGE_SIZE)
         # Ensure we stopped bookmarking at third day
         self.assertEqual({'bookmarks': {'123': {'12345': {'last_report_date': '2019-11-03'}}}}, state)
         # Ensure we paginated through all 4 days, not stopping at third
@@ -64,7 +66,8 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
                     {"id": "123", "name":"test_report", "profile_id": "12345", "metrics":[], "dimensions":[]},
                     utils.strptime_to_utc("2019-11-03"),
                     utils.strptime_to_utc("2019-11-03"),
-                    state)
+                    state,
+                    DEFAULT_PAGE_SIZE)
         self.assertEqual({'bookmarks': {'123': {'12345': {'last_report_date': '2019-11-03'}}}}, state)
         self.assertEqual(self.client.get_report.call_count, 1)
 
@@ -93,6 +96,7 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
                     utils.strptime_to_utc("2019-10-30"),
                     utils.strptime_to_utc("2019-11-04"),
                     state,
+                    DEFAULT_PAGE_SIZE,
                     historically_syncing=True)
         self.assertEqual({'bookmarks': {'123': {'12345': {'last_report_date': '2019-11-03'}}}}, state)
         self.assertEqual(self.client.get_report.call_count, 6)
@@ -124,6 +128,7 @@ class TestIsDataGoldenBookmarking(unittest.TestCase):
                         utils.strptime_to_utc("2019-10-30"),
                         utils.strptime_to_utc("2019-11-02"),
                         state,
+                        DEFAULT_PAGE_SIZE,
                         historically_syncing=True)
         self.assertEqual({}, state)
         self.assertEqual(self.client.get_report.call_count, 4)

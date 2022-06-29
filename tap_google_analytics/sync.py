@@ -95,7 +95,7 @@ def transform_datetimes(rec):
             rec[field_name] = datetime.strptime(value, DATETIME_FORMATS[field_name]).strftime(singer.utils.DATETIME_FMT)
     return rec
 
-def sync_report(client, schema, report, start_date, end_date, state, historically_syncing=False):
+def sync_report(client, schema, report, start_date, end_date, state, page_size, historically_syncing=False):
     """
     Run a sync, beginning from either the start_date or bookmarked date,
     requesting a report per day, until the last full day of data. (e.g.,
@@ -114,7 +114,7 @@ def sync_report(client, schema, report, start_date, end_date, state, historicall
     for report_date in generate_report_dates(start_date, end_date):
         for raw_report_response in client.get_report(report['name'], report['profile_id'],
                                                      report_date, report['metrics'],
-                                                     report['dimensions']):
+                                                     report['dimensions'], page_size):
 
             with singer.metrics.record_counter(report['name']) as counter:
                 time_extracted = singer.utils.now()

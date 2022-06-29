@@ -431,7 +431,7 @@ class Client():
 
     # Sync Requests w/ Pagination and token refresh
     # Docs for more info: https://developers.google.com/analytics/devguides/reporting/core/v4/rest/v4/reports/batchGet
-    def get_report(self, name, profile_id, report_date, metrics, dimensions):
+    def get_report(self, name, profile_id, report_date, metrics, dimensions, page_size):
         """
         Parameters:
         - name - the tap_stream_id of the report being run
@@ -454,6 +454,7 @@ class Client():
                         nextPageToken)
             body = {"reportRequests":
                     [{"viewId": profile_id,
+                      "pageSize": page_size, # Pagination parameter
                       "dateRanges": [{"startDate": report_date_string,
                                       "endDate": report_date_string}],
                       "metrics": [{"expression": m} for m in metrics],

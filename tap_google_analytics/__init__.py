@@ -11,6 +11,7 @@ from .sync import sync_report
 
 LOGGER = singer.get_logger()
 
+DEFAULT_PAGE_SIZE = 1000
 
 # TODO: Add an integration test with multiple profiles that asserts state
 def clean_state_for_report(config, state, tap_stream_id):
@@ -57,12 +58,31 @@ def get_end_date(config):
 def get_view_ids(config):
     return config.get('view_ids') or [config.get('view_id')]
 
+def get_page_size(config):
+    """
+    This function will get page size from config,
+    and will return the default value if an invalid page size is given.
+    """
+    page_size = config.get('page_size', DEFAULT_PAGE_SIZE)
+    try:
+        if int(float(page_size)) > 0:
+            return int(float(page_size))
+        else:
+            LOGGER.warning(f"The entered page size is invalid; it will be set to the default page size of {DEFAULT_PAGE_SIZE}")
+            return DEFAULT_PAGE_SIZE
+    except Exception:
+        LOGGER.warning(f"The entered page size is invalid; it will be set to the default page size of {DEFAULT_PAGE_SIZE}")
+        return DEFAULT_PAGE_SIZE
+
 def do_sync(client, config, catalog, state):
     """
     Translate metadata into a set of metrics and dimensions and call out
     to sync to generate the required reports.
     """
     selected_streams = catalog.get_selected_streams(state)
+    # Get page size
+    page_size = get_page_size(config)
+
     for stream in selected_streams:
         # Transform state for this report to new format before proceeding
         state = clean_state_for_report(config, state, stream.tap_stream_id)
@@ -122,7 +142,7 @@ def do_sync(client, config, catalog, state):
 
             is_historical_sync, start_date = get_start_date(config, report['profile_id'], state, report['id'])
 
-            sync_report(client, schema, report, start_date, end_date, state, is_historical_sync)
+            sync_report(client, schema, report, start_date, end_date, state, page_size, is_historical_sync)
         state.pop('currently_syncing_view', None)
         singer.write_state(state)
     state = singer.set_currently_syncing(state, None)
