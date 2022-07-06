@@ -88,11 +88,26 @@ DATETIME_FORMATS = {
     "ga:date": '%Y%m%d',
 }
 
+def parse_datetime(field_name, value):
+    """
+    Handle the case where the datetime value is not a valid datetime format.
+
+    Google will return `(other)` as the value when the underlying database table
+    from which the report is built reaches its row limit.
+
+    See https://support.google.com/analytics/answer/9309767
+    """
+    try:
+        return datetime.strptime(value, DATETIME_FORMATS[field_name]).strftime(singer.utils.DATETIME_FMT)
+    except ValueError:
+        LOGGER.warning("Datetime value is not in expected format. It will not be transformed.")
+        return value
+
 def transform_datetimes(rec):
     """ Datetimes have a compressed format, so this ensures they parse correctly. """
     for field_name, value in rec.items():
         if value and field_name in DATETIME_FORMATS:
-            rec[field_name] = datetime.strptime(value, DATETIME_FORMATS[field_name]).strftime(singer.utils.DATETIME_FMT)
+            rec[field_name] = parse_datetime(field_name, value)
     return rec
 
 def sync_report(client, schema, report, start_date, end_date, state, historically_syncing=False):
