@@ -97,17 +97,23 @@ def parse_datetime(field_name, value):
 
     See https://support.google.com/analytics/answer/9309767
     """
+    is_valid_datetime = True
     try:
-        return datetime.strptime(value, DATETIME_FORMATS[field_name]).strftime(singer.utils.DATETIME_FMT)
+        parsed_datetime = datetime.strptime(value, DATETIME_FORMATS[field_name]).strftime(singer.utils.DATETIME_FMT)
+        return parsed_datetime, is_valid_datetime
     except ValueError:
-        LOGGER.warning("Datetime value is not in expected format. It will not be transformed.")
-        return value
+        is_valid_datetime = False
+        return value, is_valid_datetime
 
-def transform_datetimes(rec):
+def transform_datetimes(report_name, rec):
     """ Datetimes have a compressed format, so this ensures they parse correctly. """
+    row_limit_reached = False
     for field_name, value in rec.items():
         if value and field_name in DATETIME_FORMATS:
-            rec[field_name] = parse_datetime(field_name, value)
+            rec[field_name], is_valid_datetime = parse_datetime(field_name, value)
+            row_limit_reached = row_limit_reached or not is_valid_datetime
+    if row_limit_reached:
+        LOGGER.warning(f"Row limit reached for report: {report_name}. See https://support.google.com/analytics/answer/9309767 for more info.")
     return rec
 
 def sync_report(client, schema, report, start_date, end_date, state, historically_syncing=False):
@@ -137,7 +143,7 @@ def sync_report(client, schema, report, start_date, end_date, state, historicall
                     for rec in report_to_records(raw_report_response):
                         singer.write_record(report["name"],
                                             transformer.transform(
-                                                transform_datetimes(rec),
+                                                transform_datetimes(report["name"], rec),
                                                 schema),
                                             time_extracted=time_extracted)
                         counter.increment()
