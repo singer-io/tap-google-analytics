@@ -111,7 +111,7 @@ def transform_datetimes(report_name, rec):
     for field_name, value in rec.items():
         if value and field_name in DATETIME_FORMATS:
             rec[field_name], is_valid_datetime = parse_datetime(field_name, value)
-            row_limit_reached = row_limit_reached or not is_valid_datetime
+            row_limit_reached = row_limit_reached or (not is_valid_datetime and value == "(other)")
     if row_limit_reached:
         LOGGER.warning(f"Row limit reached for report: {report_name}. See https://support.google.com/analytics/answer/9309767 for more info.")
     return rec
