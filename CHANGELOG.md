@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+  * Allow non-valid datetime strings in the date fields, specifically to handle the case where a report's row limit is reached. [#75](https://github.com/singer-io/tap-google-analytics/pull/75)
+    * More on Google's row limits [here](https://support.google.com/analytics/answer/9309767).
+
 ## 1.1.2
   * Add Custom Error Handling [#69](https://github.com/singer-io/tap-google-analytics/pull/69)
   * Added missing test cases [#68](https://github.com/singer-io/tap-google-analytics/pull/68)
