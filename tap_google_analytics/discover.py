@@ -46,7 +46,14 @@ float_field_overrides = {'ga:latitude',
 # pylint: disable=too-many-return-statements
 def type_to_schema(ga_type, field_id):
     if field_id in datetime_field_overrides:
-        return {"type": ["string", "null"], "format": "date-time"}
+        # datetime is not always a valid datetime string
+        # https://support.google.com/analytics/answer/9309767
+        return {
+            "anyOf": [
+                {"type": ["string", "null"], "format": "date-time"},
+                {"type": ["string", "null"]}
+            ]
+        }
     elif ga_type == 'CURRENCY':
         # https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters#ecomm
         return {"type": ["number", "null"]}
