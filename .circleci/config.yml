@@ -39,10 +39,14 @@ jobs:
           name: 'Integration Tests'
           command: |
             source dev_env.sh
+            mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
+            export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             run-test --tap=tap-google-analytics tests
       - slack/notify-on-failure:
           only_for_branches: master
+      - store_artifacts:
+          path: /tmp/tap-google-analytics
 
 workflows:
   version: 2
