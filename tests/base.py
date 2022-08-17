@@ -299,7 +299,8 @@ class GoogleAnalyticsBaseTest(BaseCase):
             selected_fields = self._get_selected_fields_from_metadata(catalog_entry['metadata'])
             for field in expected_selected_fields:
                 field_selected = field in selected_fields
-                LOGGER.info("\tValidating field selection on %s.%s: %s".format(cat['stream_name'], field, field_selected)
+                LOGGER.info("\tValidating field selection on %s.%s: %s", cat['stream_name'], field, field_selected)
+
             self.assertSetEqual(expected_selected_fields, selected_fields)
 
     @staticmethod
