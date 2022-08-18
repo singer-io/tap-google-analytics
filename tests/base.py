@@ -2,19 +2,19 @@
 Setup expectations for test sub classes
 Run discovery for as a prerequisite for most tests
 """
-import unittest
 import os
 from datetime import timedelta
 from datetime import datetime as dt
 
-from tap_tester import connections, menagerie, runner
+from tap_tester import connections, menagerie, runner, LOGGER
+from tap_tester.base_case import BaseCase
 
 ##########################################################################
 ### TODO https://stitchdata.atlassian.net/browse/SRCE-5083
 ##########################################################################
 
 
-class GoogleAnalyticsBaseTest(unittest.TestCase):
+class GoogleAnalyticsBaseTest(BaseCase):
     """
     Setup expectations for test sub classes.
     Metadata describing streams.
@@ -209,7 +209,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
         found_catalog_names = set(map(lambda c: c['stream_name'], found_catalogs))
 
         self.assertSetEqual(self.expected_sync_streams(), found_catalog_names, msg="discovered schemas do not match")
-        print("discovered schemas are OK")
+        LOGGER.info("discovered schemas are OK")
 
         return found_catalogs
 
@@ -233,7 +233,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             sum(sync_record_count.values()), 0,
             msg="failed to replicate any data: {}".format(sync_record_count)
         )
-        print("total replicated row count: {}".format(sum(sync_record_count.values())))
+        LOGGER.info("total replicated row count: %s", sum(sync_record_count.values()))
 
         return sync_record_count
 
@@ -280,7 +280,7 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
 
             # Verify all intended streams are selected
             selected = catalog_entry['metadata'][0]['metadata'].get('selected')
-            print("Validating selection on {}: {}".format(cat['stream_name'], selected))
+            LOGGER.info("Validating selection on %s: %s", cat['stream_name'], selected)
             if cat['stream_name'] not in expected_selected_streams:
                 self.assertFalse(selected, msg="Stream selected, but not testable.")
                 continue # Skip remaining assertions if we aren't selecting this stream
@@ -299,7 +299,8 @@ class GoogleAnalyticsBaseTest(unittest.TestCase):
             selected_fields = self._get_selected_fields_from_metadata(catalog_entry['metadata'])
             for field in expected_selected_fields:
                 field_selected = field in selected_fields
-                print("\tValidating field selection on {}.{}: {}".format(cat['stream_name'], field, field_selected))
+                LOGGER.info("\tValidating field selection on %s.%s: %s", cat['stream_name'], field, field_selected)
+
             self.assertSetEqual(expected_selected_fields, selected_fields)
 
     @staticmethod

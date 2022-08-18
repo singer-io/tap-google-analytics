@@ -1,8 +1,12 @@
+import random
+
 import tap_tester.connections as connections
 import tap_tester.runner as runner
 import tap_tester.menagerie as menagerie
+from tap_tester import LOGGER
+
 from base import GoogleAnalyticsBaseTest
-import random
+
 
 NO_OF_DIMENSIION_ALLOWED = 9
 NO_OF_METRIC_ALLOWED = 10
@@ -70,15 +74,15 @@ class GoogleAnalyticsDynamicFieldselectionTest(GoogleAnalyticsBaseTest):
             
             # This will randomly select the dimension and metric for the stream
             else:
-                print(f'Randomly selecting metrics and dimensions for stream: {stream}')
+                LOGGER.info('Randomly selecting metrics and dimensions for stream: %s', stream)
                 dimension = self.stream_dimension.get(stream) # Getting the dimension
                 metric = self.stream_metric.get(stream) # Getting the metrics
                 # Randomly select the dimension
                 selected_dimension_fields = self.random_field_selection(dimension, NO_OF_DIMENSIION_ALLOWED) 
-                print(f'Random Combination of dimension for {stream} : {selected_dimension_fields}')
+                LOGGER.info('Random Combination of dimension for %s : %s', stream, selected_dimension_fields)
                 # Randomly select the metrics
                 selected_metrics_fields = self.random_field_selection(metric, NO_OF_METRIC_ALLOWED)
-                print(f'Random Combination of metrics for {stream} : {selected_metrics_fields} ')
+                LOGGER.info('Random Combination of metrics for %s : %s ', stream, selected_metrics_fields)
                 non_selected_fields[stream] = dimension | metric - selected_dimension_fields - selected_metrics_fields 
         return non_selected_fields
 

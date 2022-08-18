@@ -1,4 +1,4 @@
-from tap_tester import connections, runner
+from tap_tester import connections, runner, LOGGER
 
 from base import GoogleAnalyticsBaseTest
 
@@ -47,7 +47,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         ### Update START DATE Between Syncs
         ##########################################################################
 
-        print("REPLICATION START DATE CHANGE: {} ===>>> {} ".format(self.start_date, self.start_date_2))
+        LOGGER.info("REPLICATION START DATE CHANGE: %s ===>>> %s ", self.start_date, self.start_date_2)
         self.start_date = self.start_date_2
 
         ##########################################################################
