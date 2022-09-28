@@ -124,4 +124,4 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 # TODO If this proves to be unstable, rework assertion to exclude records that are not golden
                 #      ie. records from the past 2 days.
                 # Verify the records replicated in sync 2 were also replicated in sync 1
-                self.assertTrue(primary_keys_sync_2.issubset(primary_keys_sync_1))
+                self.assertTrue(primary_keys_sync_2.issubset(primary_keys_sync_1), msg=f"{primary_keys_sync_2} is expected to be a subset of {primary_keys_sync_1}")
