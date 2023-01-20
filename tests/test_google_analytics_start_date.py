@@ -20,7 +20,9 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         self.start_date_1 = self.get_properties().get('start_date')
         self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=5)
 
-        self.start_date = self.start_date_1
+        # use start_date_2 for sync 1 to keep assertions from failing if new records come in
+        # between syncs.  The last assertion is that sync 1 is a subset of sync 2.
+        self.start_date = self.start_date_2
 
         expected_streams = self.expected_sync_streams() - self.SKIP_STREAMS
 
@@ -29,7 +31,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         ##########################################################################
 
         # instantiate connection
-        conn_id_1 = connections.ensure_connection(self)
+        conn_id_1 = connections.ensure_connection(self, original_properties=False)
 
         # run check mode
         found_catalogs_1 = self.run_and_verify_check_mode(conn_id_1)
@@ -47,8 +49,8 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         ### Update START DATE Between Syncs
         ##########################################################################
 
-        LOGGER.info("REPLICATION START DATE CHANGE: %s ===>>> %s ", self.start_date, self.start_date_2)
-        self.start_date = self.start_date_2
+        LOGGER.info("REPLICATION START DATE CHANGE: %s ===>>> %s ", self.start_date, self.start_date_1)
+        self.start_date = self.start_date_1
 
         ##########################################################################
         ### Second Sync
@@ -102,26 +104,28 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 # # Verify replication key is greater or equal to start_date for sync 1
                 for replication_date in replication_dates_1:
                     self.assertGreaterEqual(
-                        self.parse_date(replication_date), self.parse_date(expected_start_date_1),
-                            msg="Report pertains to a date prior to our start date.\n" +
-                            "Sync start_date: {}\n".format(expected_start_date_1) +
-                            "Record date: {} ".format(replication_date)
-                    )
-
-                # Verify replication key is greater or equal to start_date for sync 2
-                for replication_date in replication_dates_2:
-                    self.assertGreaterEqual(
                         self.parse_date(replication_date), self.parse_date(expected_start_date_2),
                             msg="Report pertains to a date prior to our start date.\n" +
                             "Sync start_date: {}\n".format(expected_start_date_2) +
                             "Record date: {} ".format(replication_date)
                     )
 
-                # Verify the number of records replicated in sync 1 is greater than the number
-                # of records replicated in sync 2
-                self.assertGreater(record_count_sync_1, record_count_sync_2)
+                # Verify replication key is greater or equal to start_date for sync 2
+                for replication_date in replication_dates_2:
+                    self.assertGreaterEqual(
+                        self.parse_date(replication_date), self.parse_date(expected_start_date_1),
+                            msg="Report pertains to a date prior to our start date.\n" +
+                            "Sync start_date: {}\n".format(expected_start_date_1) +
+                            "Record date: {} ".format(replication_date)
+                    )
+
+                # Verify the number of records replicated in sync 2 is greater than the number
+                # of records replicated in sync 1
+                self.assertGreater(record_count_sync_2, record_count_sync_1)
 
                 # TODO If this proves to be unstable, rework assertion to exclude records that are not golden
                 #      ie. records from the past 2 days.
+                #      Update: This has been unstable, attempting to stabilze by switching start dates 01/17/2023
                 # Verify the records replicated in sync 2 were also replicated in sync 1
-                self.assertTrue(primary_keys_sync_2.issubset(primary_keys_sync_1), msg=f"{primary_keys_sync_2} is expected to be a subset of {primary_keys_sync_1}")
+                self.assertTrue(primary_keys_sync_1.issubset(primary_keys_sync_2),
+                                msg=f"{primary_keys_sync_1} is expected to be a subset of {primary_keys_sync_2}")
