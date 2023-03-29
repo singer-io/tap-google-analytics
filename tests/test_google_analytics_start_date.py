@@ -1,4 +1,5 @@
 from tap_tester import connections, runner, LOGGER
+import pendulum
 
 from base import GoogleAnalyticsBaseTest
 
@@ -84,10 +85,10 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 record_count_sync_2 = record_count_by_stream_2.get(stream, 0)
                 primary_keys_list_1 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
                                        for message in synced_records_1.get(stream).get('messages')
-                                       if message.get('action') == 'upsert']
+                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < pendulum.now().subtract(days=2) ]
                 primary_keys_list_2 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
                                        for message in synced_records_2.get(stream).get('messages')
-                                       if message.get('action') == 'upsert']
+                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < pendulum.now().subtract(days=2) ]
                 primary_keys_sync_1 = set(primary_keys_list_1)
                 primary_keys_sync_2 = set(primary_keys_list_2)
 
@@ -126,6 +127,8 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 # TODO If this proves to be unstable, rework assertion to exclude records that are not golden
                 #      ie. records from the past 2 days.
                 #      Update: This has been unstable, attempting to stabilze by switching start dates 01/17/2023
+                #      Update: This has been unstable - https://jira.talendforge.org/browse/TDL-22494 - 
+                #              Added one more condition while getting the primary_keys_sync to exclude the last 2 days.
                 # Verify the records replicated in sync 2 were also replicated in sync 1
                 self.assertTrue(primary_keys_sync_1.issubset(primary_keys_sync_2),
                                 msg=f"{primary_keys_sync_1} is expected to be a subset of {primary_keys_sync_2}")
