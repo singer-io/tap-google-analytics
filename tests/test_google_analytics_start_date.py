@@ -72,6 +72,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         record_count_by_stream_2 = self.run_and_verify_sync(conn_id_2)
         synced_records_2 = runner.get_records_from_target_output()
 
+
         for stream in expected_streams:
             with self.subTest(stream=stream):
 
@@ -84,12 +85,15 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 # Exclude the last 2 days to avaoid instability in the tests- TDL-22494
                 record_count_sync_1 = record_count_by_stream_1.get(stream, 0)
                 record_count_sync_2 = record_count_by_stream_2.get(stream, 0)
+
+                sync_end_date = pendulum.today().subtract(days=2);
+
                 primary_keys_list_1 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
                                        for message in synced_records_1.get(stream).get('messages')
-                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < pendulum.now().subtract(days=2) ]
+                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < sync_end_date]
                 primary_keys_list_2 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
                                        for message in synced_records_2.get(stream).get('messages')
-                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < pendulum.now().subtract(days=2) ]
+                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < sync_end_date ]
                 primary_keys_sync_1 = set(primary_keys_list_1)
                 primary_keys_sync_2 = set(primary_keys_list_2)
 
