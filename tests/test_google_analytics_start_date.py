@@ -72,7 +72,6 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         record_count_by_stream_2 = self.run_and_verify_sync(conn_id_2)
         synced_records_2 = runner.get_records_from_target_output()
 
-
         for stream in expected_streams:
             with self.subTest(stream=stream):
 
@@ -96,7 +95,6 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                                        if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < sync_end_date ]
                 primary_keys_sync_1 = set(primary_keys_list_1)
                 primary_keys_sync_2 = set(primary_keys_list_2)
-
 
                 # collect information specific to incremental streams from syncs 1 & 2
                 expected_replication_key = next(iter(self.expected_replication_keys().get(stream)))
