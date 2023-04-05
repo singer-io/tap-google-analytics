@@ -81,17 +81,20 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 expected_start_date_2 = self.start_date_2
 
                 # collect information for assertions from syncs 1 & 2 base on expected values
+                # Exclude the last 2 days to avaoid instability in the tests- TDL-22494
                 record_count_sync_1 = record_count_by_stream_1.get(stream, 0)
                 record_count_sync_2 = record_count_by_stream_2.get(stream, 0)
+
+                sync_end_date = pendulum.today().subtract(days=2);
+
                 primary_keys_list_1 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
                                        for message in synced_records_1.get(stream).get('messages')
-                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < pendulum.now().subtract(days=2) ]
+                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < sync_end_date]
                 primary_keys_list_2 = [tuple(message.get('data').get(expected_pk) for expected_pk in expected_primary_keys)
                                        for message in synced_records_2.get(stream).get('messages')
-                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < pendulum.now().subtract(days=2) ]
+                                       if message.get('action') == 'upsert' and pendulum.parse(message.get('data').get('start_date')) < sync_end_date ]
                 primary_keys_sync_1 = set(primary_keys_list_1)
                 primary_keys_sync_2 = set(primary_keys_list_2)
-
 
                 # collect information specific to incremental streams from syncs 1 & 2
                 expected_replication_key = next(iter(self.expected_replication_keys().get(stream)))
