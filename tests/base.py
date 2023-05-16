@@ -279,7 +279,9 @@ class GoogleAnalyticsBaseTest(BaseCase):
             catalog_entry = menagerie.get_annotated_schema(conn_id, cat['stream_id'])
 
             # Verify all intended streams are selected
-            selected = catalog_entry['metadata'][0]['metadata'].get('selected')
+            selected = [
+                    item['metadata'].get('selected') for item in catalog_entry['metadata']
+                    if item['breadcrumb'] == []][0]
             LOGGER.info("Validating selection on %s: %s", cat['stream_name'], selected)
             if cat['stream_name'] not in expected_selected_streams:
                 self.assertFalse(selected, msg="Stream selected, but not testable.")
