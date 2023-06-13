@@ -43,11 +43,10 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                 expected_streams.remove(stream)
                 expected_streams.add(custom_streams_name_to_id[stream])
 
-        timedelta_by_stream = {stream: 15  # {stream_name: number_of_days, ...}
-                               for stream in expected_streams
-                               if stream != 'Acquisition Overview'}
         # try decreasing bookmark delta to compensate for data gaps in stream 'Acquisition Overview'
-        timedelta_by_stream['Acquisition Overview'] = 5
+        # {stream_name: number_of_days, ...}
+        timedelta_by_stream = {stream: 15 if stream != 'Acquisition Overview' else 5
+                               for stream in expected_streams}
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
         for stream, account_to_state in current_state['bookmarks'].items():
