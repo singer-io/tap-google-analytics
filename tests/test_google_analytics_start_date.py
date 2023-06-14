@@ -19,7 +19,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
         """Instantiate start date according to the desired data set and run the test"""
 
         self.start_date_1 = self.get_properties().get('start_date')
-        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=5)
+        self.start_date_2 = self.timedelta_formatted(self.start_date_1, days=25)
 
         # use start_date_2 for sync 1 to keep assertions from failing if new records come in
         # between syncs.  The last assertion is that sync 1 is a subset of sync 2.
@@ -130,7 +130,7 @@ class GoogleAnalyticsStartDateTest(GoogleAnalyticsBaseTest):
                 # TODO If this proves to be unstable, rework assertion to exclude records that are not golden
                 #      ie. records from the past 2 days.
                 #      Update: This has been unstable, attempting to stabilze by switching start dates 01/17/2023
-                #      Update: This has been unstable - https://jira.talendforge.org/browse/TDL-22494 - 
+                #      Update: This has been unstable - https://jira.talendforge.org/browse/TDL-22494 -
                 #              Added one more condition while getting the primary_keys_sync to exclude the last 2 days.
                 # Verify the records replicated in sync 2 were also replicated in sync 1
                 self.assertTrue(primary_keys_sync_1.issubset(primary_keys_sync_2),

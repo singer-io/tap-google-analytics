@@ -43,7 +43,9 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                 expected_streams.remove(stream)
                 expected_streams.add(custom_streams_name_to_id[stream])
 
-        timedelta_by_stream = {stream: 15  # {stream_name: number_of_days, ...}
+        # try decreasing bookmark delta to compensate for data gaps in stream 'Acquisition Overview'
+        # {stream_name: number_of_days, ...}
+        timedelta_by_stream = {stream: 5 if stream == 'Acquisition Overview' else 15
                                for stream in expected_streams}
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
@@ -190,7 +192,6 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     second_replication_values_sorted = sorted(second_replication_values)
                     self.assertEqual(second_replication_values_sorted, second_replication_values)
 
-                   
                     for record in second_sync_messages:
                         with self.subTest(record=record):
                             # Verify the second sync records respect the previous (simulated) bookmark value
