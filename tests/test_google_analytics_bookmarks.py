@@ -45,7 +45,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
 
         # try decreasing bookmark delta to compensate for data gaps in stream 'Acquisition Overview'
         # {stream_name: number_of_days, ...}
-        timedelta_by_stream = {stream: 15 if stream != 'Acquisition Overview' else 5
+        timedelta_by_stream = {stream: 5 if stream == 'Acquisition Overview' else 15
                                for stream in expected_streams}
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
