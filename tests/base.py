@@ -48,7 +48,8 @@ class GoogleAnalyticsBaseTest(BaseCase):
     def get_properties(self, original: bool = True):
         """Configuration properties required for the tap."""
         return_value = {
-            'start_date' : (dt.utcnow() - timedelta(days=30)).strftime(self.START_DATE_FORMAT),
+            # start_date hard coded to prevent data from aging out, new data stopped Oct 5, 2023
+            'start_date' : "2023-09-01T00:00:00Z",
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
             'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "Test Report 1"}]
         }
