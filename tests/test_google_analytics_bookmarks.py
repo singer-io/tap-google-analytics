@@ -43,7 +43,9 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                 expected_streams.remove(stream)
                 expected_streams.add(custom_streams_name_to_id[stream])
 
-        timedelta_by_stream = {stream: 15  # {stream_name: number_of_days, ...}
+        # try decreasing bookmark delta to compensate for data gaps in stream 'Acquisition Overview'
+        # {stream_name: number_of_days, ...}
+        timedelta_by_stream = {stream: 5 if stream == 'Acquisition Overview' else 15
                                for stream in expected_streams}
 
         stream_to_calculated_state = {stream: "" for stream in current_state['bookmarks'].keys()}
@@ -125,7 +127,7 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                 # tap saves state as stream_id for custom reports
                 stream_id = custom_streams_name_to_id.get(stream, stream)
 
-                # collect information for assertions from syncs 1 & 2 base on expected values
+                # collect information for assertions from syncs 1 & 2 based on expected values
                 first_sync_count = first_sync_record_count.get(stream, 0)
                 second_sync_count = second_sync_record_count.get(stream, 0)
                 first_sync_messages = [record.get('data') for record in
@@ -178,7 +180,8 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     self.assertIsNotNone(second_bookmark_value)
 
                     # Verify the second sync bookmark is Equal to the first sync bookmark
-                    self.assertEqual(second_bookmark_value, first_bookmark_value) # assumes no changes to data during test
+                    # assumes no changes to data during test
+                    self.assertEqual(second_bookmark_value, first_bookmark_value)
 
                     # Verify the records are orderd by repilcation key for sync 1
                     first_replication_values = [record[replication_key] for record in first_sync_messages]
@@ -190,13 +193,12 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     second_replication_values_sorted = sorted(second_replication_values)
                     self.assertEqual(second_replication_values_sorted, second_replication_values)
 
-                   
                     for record in second_sync_messages:
                         with self.subTest(record=record):
-                            # Verify the second sync records respect the previous (simulated) bookmark value
+                            # Verify second sync records respect the previous (simulated) bookmark
                             self.assertGreaterEqual(record[replication_key], simulated_bookmark_value)
 
-                            # Verify today's date is the max replication-key value for the second sync
+                            # Verify today's date is the max replication-key for the second sync
                             self.assertGreaterEqual(today, record[replication_key])
 
                     for record in first_sync_messages:
@@ -209,23 +211,26 @@ class GoogleAnalyticsBookmarksTest(GoogleAnalyticsBaseTest):
                     #     According to Gooogle Analytics Docs, is_golden should only be false for the last 24-48
                     #     hours of data.
 
+                    # The assertion below is only valid if data is being generated daily.  New data
+                    #   has stopped as of Oct 5, 2023.  The old account is reportedly no longer
+                    #   running.  If access to an active account is possible this can be uncommented
                     # Verify the first sync bookmark falls within the date window of today - 48 hours
-                    today_minus_golden_window = self.timedelta_formatted(today, days=-2)
-                    self.assertGreaterEqual(
-                        first_bookmark_value, today_minus_golden_window,
-                        msg="First sync bookmark was set prior to the expected date."
-                    )
-
+                    # today_minus_golden_window = self.timedelta_formatted(today, days=-2)
+                    # self.assertGreaterEqual(first_bookmark_value, today_minus_golden_window,
+                    #     msg="First sync bookmark was set prior to the expected date."
+                    # )
 
                     # Verify the number of records in the 2nd sync is less then the first
                     self.assertLess(second_sync_count, first_sync_count)
 
                     # Verify at least 1 record was replicated in the second sync
-                    self.assertGreater(second_sync_count, 0, msg="We are not fully testing bookmarking for {}".format(stream))
-
+                    self.assertGreater(second_sync_count, 0,
+                        msg="We are not fully testing bookmarking for {}".format(stream)
+                    )
 
                 else:
 
                     raise NotImplementedError(
-                        "INVALID EXPECTATIONS\t\tSTREAM: {} REPLICATION_METHOD: {}".format(stream, expected_replication_method)
+                        "INVALID EXPECTATIONS\t\tSTREAM: {} REPLICATION_METHOD: {}".format(
+                            stream, expected_replication_method)
                     )
