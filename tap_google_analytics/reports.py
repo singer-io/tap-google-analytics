@@ -74,8 +74,6 @@ PREMADE_REPORTS = [
             "ga:operatingSystem",
             "ga:screenResolution",
             "ga:screenColors",
-            "ga:flashVersion",
-            "ga:javaEnabled",
             "ga:hostname"
         ],
         "default_dimensions": [
