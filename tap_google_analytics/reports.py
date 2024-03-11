@@ -107,7 +107,6 @@ PREMADE_REPORTS = [
         "name": "Behavior Overview",
         "metrics": [
             "ga:pageviews",
-            "ga:uniquePageviews",
             "ga:avgTimeOnPage",
             "ga:bounceRate",
             "ga:exitRate",
