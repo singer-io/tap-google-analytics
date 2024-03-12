@@ -86,15 +86,22 @@ PREMADE_REPORTS = [
         "name": "Acquisition Overview",
         "metrics": [
             "ga:sessions",
-            "ga:pageviewsPerSession",
+            "ga:users",
+            "ga:newUsers",
+            "ga:sessionDuration"
             "ga:avgSessionDuration",
-            "ga:bounceRate"
+            "ga:bounceRate",
+            "ga:pageviews",
+            "ga:pageviewsPerSession",
+            "ga:goalConversionRateAll"
         ],
         "dimensions": [
-            'ga:acquisitionMedium',
-            'ga:acquisitionSource',
-            'ga:acquisitionSourceMedium',
-            'ga:acquisitionTrafficChannel'
+            "ga:date",
+            "ga:medium",
+            "ga:source",
+            "ga:sourceMedium",
+            "ga:campaign",
+            "ga:channelGrouping",
         ],
         "default_dimensions": [
             "ga:acquisitionTrafficChannel",
@@ -118,9 +125,8 @@ PREMADE_REPORTS = [
             "ga:month",
             "ga:hour",
             "ga:pagePath",
-            "ga:pageTitle",
-            "ga:searchKeyword",
-            "ga:eventCategory"
+            "ga:eventCategory",
+            "ga:eventAction",
         ],
         "default_dimensions": [
             "ga:date",
