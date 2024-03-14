@@ -114,6 +114,7 @@ PREMADE_REPORTS = [
         "name": "Behavior Overview",
         "metrics": [
             "ga:pageviews",
+            "ga:uniquePageviews",
             "ga:avgTimeOnPage",
             "ga:bounceRate",
             "ga:exitRate",
@@ -121,12 +122,7 @@ PREMADE_REPORTS = [
         ],
         "dimensions": [
             "ga:date",
-            "ga:year",
-            "ga:month",
-            "ga:hour",
             "ga:pagePath",
-            "ga:eventCategory",
-            "ga:eventAction",
         ],
         "default_dimensions": [
             "ga:date",
