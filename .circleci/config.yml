@@ -37,6 +37,7 @@ jobs:
           path: htmlcov
       - run:
           name: 'Integration Tests'
+          no_output_timeout: 45m
           command: |
             source dev_env.sh
             mkdir /tmp/${CIRCLE_PROJECT_REPONAME}

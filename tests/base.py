@@ -51,7 +51,8 @@ class GoogleAnalyticsBaseTest(BaseCase):
             # start_date hard coded to prevent data from aging out, new data stopped Oct 5, 2023
             'start_date' : "2023-09-01T00:00:00Z",
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
-            'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305", "name": "Test Report 1"}]
+            'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305",
+                                    "name": "Test Report 1"}]
         }
         if original:
             return return_value
@@ -205,11 +206,13 @@ class GoogleAnalyticsBaseTest(BaseCase):
         menagerie.verify_check_exit_status(self, exit_status, check_job_name)
 
         found_catalogs = menagerie.get_catalogs(conn_id)
-        self.assertGreater(len(found_catalogs), 0, msg="unable to locate schemas for connection {}".format(conn_id))
+        self.assertGreater(len(found_catalogs), 0,
+                           msg="unable to locate schemas for connection {}".format(conn_id))
 
         found_catalog_names = set(map(lambda c: c['stream_name'], found_catalogs))
 
-        self.assertSetEqual(self.expected_sync_streams(), found_catalog_names, msg="discovered schemas do not match")
+        self.assertSetEqual(self.expected_sync_streams(), found_catalog_names,
+                            msg="discovered schemas do not match")
         LOGGER.info("discovered schemas are OK")
 
         return found_catalogs
@@ -291,18 +294,25 @@ class GoogleAnalyticsBaseTest(BaseCase):
 
             # collect field selection expecationas
             expected_automatic_fields = self.expected_automatic_fields()[cat['stream_name']]
-            selected_default_fields = expected_default_fields[cat['stream_name']] if select_default_fields else set()
-            selected_pagination_fields = expected_pagination_fields[cat['stream_name']] if select_pagination_fields else set()
+            selected_default_fields = expected_default_fields[cat['stream_name']] \
+                if select_default_fields else set()
+            selected_pagination_fields = expected_pagination_fields[cat['stream_name']] \
+                if select_pagination_fields else set()
 
             # Verify all intended fields within the stream are selected
             if non_selected_props:
-                expected_selected_fields = self.get_all_fields(catalog_entry) - non_selected_props.get(cat['stream_name'],set())
+                expected_selected_fields = self.get_all_fields(catalog_entry) \
+                    - non_selected_props.get(cat['stream_name'],set())
             else:
-                expected_selected_fields = expected_automatic_fields | selected_default_fields | selected_pagination_fields
+                expected_selected_fields = expected_automatic_fields | selected_default_fields | \
+                    selected_pagination_fields
             selected_fields = self._get_selected_fields_from_metadata(catalog_entry['metadata'])
             for field in expected_selected_fields:
                 field_selected = field in selected_fields
-                LOGGER.info("\tValidating field selection on %s.%s: %s", cat['stream_name'], field, field_selected)
+                LOGGER.info("\tValidating field selection on %s.%s: %s",
+                            cat['stream_name'],
+                            field,
+                            field_selected)
 
             self.assertSetEqual(expected_selected_fields, selected_fields)
 
@@ -319,7 +329,12 @@ class GoogleAnalyticsBaseTest(BaseCase):
                 selected_fields.add(field['breadcrumb'][1])
         return selected_fields
 
-    def _select_streams_and_fields(self, conn_id, catalogs, select_default_fields, select_pagination_fields, non_selected_props=dict()):
+    def _select_streams_and_fields(self,
+                                   conn_id,
+                                   catalogs,
+                                   select_default_fields,
+                                   select_pagination_fields,
+                                   non_selected_props=dict()):
         """Select all streams and all fields within streams"""
 
         for catalog in catalogs:
@@ -350,7 +365,7 @@ class GoogleAnalyticsBaseTest(BaseCase):
     @staticmethod
     def parse_date(date_value):
         """
-        Pass in string-formatted-datetime, parse the value, and return it as an unformatted datetime object.
+        Pass in string-formatted-datetime, parse, and return as an unformatted datetime object.
         """
         date_formats = {
             "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -366,7 +381,8 @@ class GoogleAnalyticsBaseTest(BaseCase):
             except ValueError:
                 continue
 
-        raise NotImplementedError("Tests do not account for dates of this format: {}".format(date_value))
+        raise NotImplementedError("Tests do not account for dates of this format: {}".format(
+            date_value))
 
     def timedelta_formatted(self, dtime, days=0):
         try:
@@ -383,7 +399,8 @@ class GoogleAnalyticsBaseTest(BaseCase):
                 return dt.strftime(return_date, self.REPLICATION_KEY_FORMAT)
 
             except ValueError:
-                return Exception("Datetime object is not of the format: {}".format(self.START_DATE_FORMAT))
+                return Exception("Datetime object is not of the format: {}".format(
+                    self.START_DATE_FORMAT))
 
     ##########################################################################
     ### Tap Specific Methods
@@ -411,7 +428,9 @@ class GoogleAnalyticsBaseTest(BaseCase):
             },
             "Audience Overview": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:sessionsPerUser", "ga:pageviews",
-                "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate", "ga:date",'ga:month','ga:operatingSystem','ga:language','ga:hour','ga:browser','ga:year','ga:country','ga:city'
+                "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate", "ga:date",
+                'ga:month','ga:operatingSystem','ga:language','ga:hour','ga:browser','ga:year',
+                'ga:country','ga:city'
             },
             "Audience Geo Location": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:pageviewsPerSession",
@@ -420,12 +439,13 @@ class GoogleAnalyticsBaseTest(BaseCase):
             },
             "Audience Technology": {
                 "ga:users", "ga:newUsers", "ga:sessions", "ga:pageviewsPerSession",
-                "ga:avgSessionDuration", "ga:bounceRate", "ga:date", "ga:browser", "ga:operatingSystem"
+                "ga:avgSessionDuration", "ga:bounceRate", "ga:date", "ga:browser",
+                "ga:operatingSystem"
             },
             "Acquisition Overview": {
                 "ga:sessions", "ga:pageviewsPerSession", "ga:avgSessionDuration", "ga:bounceRate",
-                "ga:acquisitionTrafficChannel", "ga:acquisitionSource", "ga:acquisitionSourceMedium",
-                "ga:acquisitionMedium"
+                "ga:acquisitionTrafficChannel", "ga:acquisitionSource",
+                "ga:acquisitionSourceMedium", "ga:acquisitionMedium"
             },
             "Behavior Overview": {
                 "ga:pageviews", "ga:uniquePageviews", "ga:avgTimeOnPage", "ga:bounceRate",
