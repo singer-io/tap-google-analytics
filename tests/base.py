@@ -33,7 +33,7 @@ class GoogleAnalyticsBaseTest(BaseCase):
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
     REPLICATION_KEY_FORMAT = "%Y-%m-%dT00:00:00.000000Z"
 
-    start_date = ""
+    start_date = timedelta_formatted(dt.utcnow(), days=-30)
 
     @staticmethod
     def tap_name():
@@ -49,7 +49,8 @@ class GoogleAnalyticsBaseTest(BaseCase):
         """Configuration properties required for the tap."""
         return_value = {
             # start_date hard coded to prevent data from aging out, new data stopped Oct 5, 2023
-            'start_date' : "2023-09-01T00:00:00Z",
+            #'start_date' : "2023-09-01T00:00:00Z",  # TODO remove if new data allows dynamic date
+            'start_date' : start_date,
             'view_id': os.getenv('TAP_GOOGLE_ANALYTICS_VIEW_ID'),
             'report_definitions': [{"id": "a665732c-d18b-445c-89b2-5ca8928a7305",
                                     "name": "Test Report 1"}]
