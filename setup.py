@@ -13,7 +13,7 @@ setup(
         "singer-python==5.9.0",
         "requests==2.22.0",
         "backoff==1.8.0",
-        "jwt==0.6.1"
+        "jwt==1.1.0"
     ],
     extras_require={
         'test': [
