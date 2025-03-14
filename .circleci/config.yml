@@ -3,7 +3,7 @@ orbs:
   slack: circleci/slack@3.4.2
 
 jobs:
-  deprecated:
+  build:
     docker:
       - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:stitch-tap-tester
     steps:
