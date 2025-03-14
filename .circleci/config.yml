@@ -3,7 +3,7 @@ orbs:
   slack: circleci/slack@3.4.2
 
 jobs:
-  build:
+  deprecated:
     docker:
       - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:stitch-tap-tester
     steps:
@@ -24,25 +24,6 @@ jobs:
             source dev_env.sh
             echo "skipping $PYLINT_DISABLE_LIST"
             pylint tap_google_analytics --disable "$PYLINT_DISABLE_LIST"
-      - run:
-          name: 'Unit Tests'
-          command: |
-            source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
-            pip install nose coverage
-            nosetests --with-coverage --cover-erase --cover-package=tap_google_analytics --cover-html-dir=htmlcov tests/unittests
-            coverage html
-      - store_test_results:
-          path: test_output/report.xml
-      - store_artifacts:
-          path: htmlcov
-      - run:
-          name: 'Integration Tests'
-          command: |
-            source dev_env.sh
-            mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
-            export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
-            source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-google-analytics tests
       - slack/notify-on-failure:
           only_for_branches: master
       - store_artifacts:
@@ -55,7 +36,6 @@ workflows:
       - build:
           context:
             - circleci-user
-            - tier-1-tap-user
   build_daily:
     <<: *commit_jobs
     triggers:
