@@ -5,22 +5,23 @@ orbs:
 jobs:
   build:
     docker:
-      - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:stitch-tap-tester
+      - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:stitch-tap-tester-uv
     steps:
       - checkout
       - run:
           name: 'Setup virtual env'
           command: |
-            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
-            python3 -mvenv /usr/local/share/virtualenvs/tap-google-analytics
+            uv venv --python 3.9 /usr/local/share/virtualenvs/tap-google-analytics
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
-            pip install 'pip==21.1.3'
-            pip install 'setuptools==56.0.0'
-            pip install .[test]
+            uv pip install 'pip==21.1.3'
+            uv pip install 'setuptools==56.0.0'
+            uv pip install .[test]
       - run:
           name: 'pylint'
           command: |
             source /usr/local/share/virtualenvs/tap-google-analytics/bin/activate
+            uv pip install --upgrade awscli
+            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
             source dev_env.sh
             echo "skipping $PYLINT_DISABLE_LIST"
             pylint tap_google_analytics --disable "$PYLINT_DISABLE_LIST"
