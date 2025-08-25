@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.4
+  * Dependabot update [#82](https://github.com/singer-io/tap-google-analytics/pull/82)
+
 ## 1.1.3
   * Allow non-valid datetime strings in the date fields, specifically to handle the case where a report's row limit is reached. [#75](https://github.com/singer-io/tap-google-analytics/pull/75)
     * More on Google's row limits [here](https://support.google.com/analytics/answer/9309767).
